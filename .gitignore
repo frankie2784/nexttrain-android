@@ -1,0 +1,47 @@
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+keystore.properties
+*.jks
+*.keystore
+.env*
+
+# Generated at build time from local.properties' NEXTTRAIN_DEV_SERVER_URL
+# (see app/build.gradle.kts) — never commit the dev server's LAN IP.
+app/src/dev/res/xml/network_security_config.xml
+
+# Android Studio
+.idea/
+*.iml
+.kotlin/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Examples
+*.example
+
+# Claude
+.claude

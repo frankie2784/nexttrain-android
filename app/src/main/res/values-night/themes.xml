@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.TrainWidget" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/nt_primary</item>
+        <item name="colorPrimaryVariant">@color/nt_primary_dark</item>
+        <item name="colorOnPrimary">@color/nt_on_primary</item>
+        <item name="colorSecondary">@color/nt_secondary</item>
+        <item name="colorSurface">@color/nt_surface</item>
+        <item name="colorOnSurface">@color/nt_text</item>
+        <item name="colorError">@color/nt_late</item>
+        <item name="android:textColorPrimary">@color/nt_text</item>
+        <item name="android:textColorSecondary">@color/nt_sub</item>
+        <item name="android:textColorHint">@color/nt_muted</item>
+        <item name="android:colorBackground">@color/nt_bg</item>
+        <item name="android:statusBarColor">@color/nt_bg</item>
+        <item name="android:navigationBarColor">@color/nt_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>
+
+        <item name="materialCardViewStyle">@style/Widget.NT.Card</item>
+        <item name="materialButtonStyle">@style/Widget.NT.Button</item>
+        <item name="bottomSheetDialogTheme">@style/Theme.NT.BottomSheet</item>
+        <item name="materialAlertDialogTheme">@style/Theme.NT.Dialog</item>
+        <item name="textInputStyle">@style/Widget.NT.TextField</item>
+    </style>
+</resources>

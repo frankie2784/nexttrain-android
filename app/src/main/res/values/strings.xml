@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Next Train</string>
+    <string name="widget_label_light">Next Train (Light)</string>
+    <string name="widget_label_dark">Next Train (Dark)</string>
+    <string name="widget_description_light">Shows the next 3 Melbourne Metro train departures from your station — light theme</string>
+    <string name="widget_description_dark">Shows the next 3 Melbourne Metro train departures from your station — dark theme</string>
+
+    <string name="min">min</string>
+    <string name="on_time">On time</string>
+    <string name="active">ACTIVE</string>
+    <string name="active_now">ACTIVE NOW</string>
+    <string name="next_departure">Next departure</string>
+    <string name="departs_prefix">"Departs "</string>
+    <string name="after_that">After that</string>
+    <string name="pull_to_refresh">Updated just now · pull to refresh</string>
+    <string name="route_deleted">Route deleted</string>
+    <string name="delete_route_title">Delete route?</string>
+    <!-- %1$s is the route label, HTML-escaped and bolded at the call site. -->
+    <string name="delete_route_message">&lt;b&gt;%1$s&lt;/b&gt;</string>
+    <string name="delete">Delete</string>
+    <string name="undo">Undo</string>
+    <string name="updating">Updating…</string>
+    <string name="no_trains">No trains found</string>
+    <string name="server_unreachable">Can\'t reach server.</string>
+    <string name="connection_error">Can\'t reach server</string>
+    <!-- Shown instead of "On time"/"X min late" when offline — the delay figure is
+         from the last successful fetch and can no longer be confirmed live. -->
+    <string name="status_not_confirmed">Offline</string>
+    <!-- Shown instead of "On time"/"X min late" for a region with no GTFS-RT feed
+         (see Region.hasRealtime) — there's no delay data to compare against. -->
+    <string name="status_scheduled">Scheduled</string>
+
+    <string name="empty_title">No routes yet</string>
+    <string name="empty_body">Add an origin, a destination and the hours you travel.</string>
+    <string name="add_a_route">Add a route</string>
+
+    <string name="save_update_widget">Save &amp; update widget</string>
+
+    <string name="edit_route">Edit route</string>
+    <string name="new_route">New route</string>
+    <string name="label">Label (optional)</string>
+    <string name="label_hint">e.g. Morning commute</string>
+    <string name="line">Line</string>
+    <string name="all_lines">All lines</string>
+    <string name="journey">Journey</string>
+    <string name="active_window">Active window</string>
+    <string name="active_days">Active days</string>
+    <string name="from">From</string>
+    <string name="to">To</string>
+    <string name="notifications">Notifications</string>
+    <string name="notifications_body">Alert me during the active window</string>
+    <string name="show_on_widget">Show on widget</string>
+    <string name="show_on_widget_body">Include this route in the home screen widget cycle</string>
+    <string name="cancel">Cancel</string>
+    <string name="save_route">Save route</string>
+    <string name="err_same_station">Origin and destination must differ</string>
+    <string name="err_no_days">Select at least one active day</string>
+    <string name="err_origin_invalid">Choose a valid origin station</string>
+    <string name="err_destination_invalid">Choose a valid destination station</string>
+
+    <string name="updated_at">Updated %1$s · pull to refresh</string>
+    <string name="platform_n">Platform %1$s</string>
+    <string name="arrives_at">arrives %1$s</string>
+    <string name="route_not_found">Route not found</string>
+    <string name="no_route_selected">Return and open a route again</string>
+
+    <string name="day_sun">S</string>
+    <string name="day_mon">M</string>
+    <string name="day_tue">T</string>
+    <string name="day_wed">W</string>
+    <string name="day_thu">T</string>
+    <string name="day_fri">F</string>
+    <string name="day_sat">S</string>
+
+    <string name="settings">Settings</string>
+    <string name="alerts">Alerts</string>
+    <string name="lock_screen_notification">Lock screen notification</string>
+    <string name="lock_screen_body">Show current departures as an ongoing notification.</string>
+    <string name="appearance">Appearance</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">System</string>
+    <string name="time_format">Time format</string>
+    <string name="time_format_24">24-hour</string>
+    <string name="time_format_12">12-hour</string>
+    <string name="default_region">Default region</string>
+    <string name="choose_region_title">Choose your region</string>
+    <string name="choose_region_body">You can change this later in Settings.</string>
+    <string name="continue_label">Continue</string>
+    <string name="version_line">Next Train · v1.0.0</string>
+
+    <string name="battery_prompt_title">Keep updates on time</string>
+    <string name="battery_prompt_message">Android\'s battery saver can slow down how often your notification and widget refresh in the background. Allow Next Train to run without battery optimizations so departure times stay up to date every minute.</string>
+    <string name="battery_prompt_allow">Allow</string>
+    <string name="battery_prompt_not_now">Not now</string>
+
+    <string name="support_footer_prefix">Found a bug or have a feature idea?</string>
+    <string name="support_email_link">Email</string>
+    <string name="support_footer_separator">·</string>
+    <string name="support_github_link">GitHub</string>
+    <string name="support_email_address" translatable="false">support@pidatastudios.com.au</string>
+    <string name="support_github_url" translatable="false">https://github.com/frankie2784/nexttrain-android</string>
+
+    <string name="cd_back">Back</string>
+    <string name="cd_close">Close</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_edit_route">Edit route</string>
+    <string name="cd_delete_route">Delete route</string>
+    <string name="cd_reorder_route">Reorder route</string>
+    <string name="cd_add_route">Add route</string>
+    <string name="cd_edit_mode">Edit routes</string>
+    <string name="cd_exit_edit_mode">Done editing</string>
+</resources>

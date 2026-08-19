@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "N Track" mark: an N drawn as a single rail easing through its bends,
+     with a station dot marking the terminus. Coordinates are pulled in to a
+     ~45dp circle centred on the 108dp canvas. Several system surfaces reuse
+     this foreground layer without applying the adaptive-icon safe-zone
+     treatment (widget "loading" placeholder, splash screen, notification
+     badge), so it needs real margin, not just the standard 66dp guideline. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M42.9,66.95 L42.9,44.75 Q42.9,41.05 45.31,43.86 L62.7,64.14 Q65.1,66.95 65.1,63.25 L65.1,41.05"
+        android:strokeColor="@color/ic_launcher_foreground_stroke"
+        android:strokeWidth="4.26"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:fillColor="@color/ic_launcher_foreground_dot"
+        android:pathData="M59.92,41.05 a5.18,5.18 0 1,0 10.36,0 a5.18,5.18 0 1,0 -10.36,0" />
+</vector>

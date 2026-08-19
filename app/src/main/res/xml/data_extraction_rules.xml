@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Excludes widget prefs (saved routes, selected route/region, caches) from
+     Auto Backup so uninstall+reinstall starts clean instead of silently
+     restoring routes from the last cloud backup. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="com.nexttrain.prefs.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="com.nexttrain.prefs.xml" />
+    </device-transfer>
+</data-extraction-rules>

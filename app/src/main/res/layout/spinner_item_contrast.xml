@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spinner collapsed state. Sits inside the journey field, so no background
+     and no leading padding — the field owns those. -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/text1"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:ellipsize="end"
+    android:maxLines="1"
+    android:paddingVertical="12dp"
+    android:paddingStart="0dp"
+    android:paddingEnd="8dp"
+    android:textColor="@color/nt_text"
+    android:textSize="14sp" />

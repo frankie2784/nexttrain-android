@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dashboard. The teal header block is gone; the top bar sits on the page
+     background and the accent is spent on the active route card instead. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/nt_bg"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/nt_gutter_wide"
+        android:paddingEnd="@dimen/nt_gutter_wide"
+        android:paddingTop="14dp"
+        android:paddingBottom="10dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/app_name"
+            style="@style/NT.Text.Title" />
+
+        <ImageButton
+            android:id="@+id/btn_edit_mode"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/nt_icon_button_bg"
+            android:src="@drawable/ic_edit"
+            android:scaleType="centerInside"
+            app:tint="@color/nt_text"
+            android:contentDescription="@string/cd_edit_mode" />
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/nt_icon_button_bg"
+            android:src="@drawable/ic_settings"
+            android:scaleType="centerInside"
+            app:tint="@color/nt_text"
+            android:contentDescription="@string/cd_settings" />
+    </LinearLayout>
+
+    <!-- Empty state -->
+    <LinearLayout
+        android:id="@+id/layout_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_departure_board"
+            app:tint="@color/nt_muted"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/empty_title"
+            style="@style/NT.Text.CardTitle" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:maxWidth="240dp"
+            android:gravity="center"
+            android:text="@string/empty_body"
+            style="@style/NT.Text.Body" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_add_first_route"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/add_a_route" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_refresh"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_dashboard"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:paddingStart="@dimen/nt_gutter_wide"
+                android:paddingEnd="@dimen/nt_gutter_wide"
+                android:paddingBottom="8dp"
+                android:clipToPadding="false" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_add_route"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="@dimen/nt_gutter_wide"
+            android:layout_marginBottom="20dp"
+            app:backgroundTint="@color/nt_primary"
+            app:tint="@color/nt_on_primary"
+            app:fabSize="mini"
+            app:srcCompat="@drawable/ic_add"
+            android:contentDescription="@string/cd_add_route" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/row_updated"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingStart="@dimen/nt_gutter_wide"
+        android:paddingEnd="@dimen/nt_gutter_wide"
+        android:paddingTop="8dp"
+        android:paddingBottom="16dp">
+
+        <ImageView
+            android:id="@+id/iv_refresh"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="6dp"
+            android:src="@drawable/ic_refresh"
+            app:tint="@color/nt_muted"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:id="@+id/tv_updated"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/pull_to_refresh"
+            style="@style/NT.Text.Caption" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Type scale. Poppins throughout; numerals use tabular figures via fontFeatureSettings. -->
+<resources>
+    <!-- To use Poppins: drop poppins_regular.ttf / poppins_semibold.ttf into
+         res/font, then set fontFamily here and in Theme.TrainWidget. Left on the
+         system sans so the module builds with no extra assets. -->
+    <style name="NT.Text" parent="">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">@color/nt_text</item>
+    </style>
+
+    <!-- Screen title, e.g. "Next Train", "Settings", "Routes" -->
+    <style name="NT.Text.Title" parent="NT.Text">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.01</item>
+    </style>
+
+    <!-- Section eyebrow: OTHER ROUTES / AFTER THAT / DATA SOURCE -->
+    <style name="NT.Text.Eyebrow" parent="NT.Text">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.1</item>
+        <item name="android:textColor">@color/nt_muted</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <!-- The number that matters. Hero minutes on the departures screen. -->
+    <style name="NT.Text.Display" parent="NT.Text">
+        <item name="android:textSize">76sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.04</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/nt_text</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <!-- Minutes on the dashboard hero card -->
+    <style name="NT.Text.Display.Card" parent="NT.Text.Display">
+        <item name="android:textSize">56sp</item>
+        <item name="android:letterSpacing">-0.03</item>
+    </style>
+
+    <!-- Minutes in a list row -->
+    <style name="NT.Text.Number" parent="NT.Text">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <style name="NT.Text.CardTitle" parent="NT.Text">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="NT.Text.Body" parent="NT.Text">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/nt_sub</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+
+    <style name="NT.Text.Caption" parent="NT.Text">
+        <item name="android:textSize">11.5sp</item>
+        <item name="android:textColor">@color/nt_muted</item>
+    </style>
+
+    <style name="NT.Text.Clock" parent="NT.Text">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+</resources>

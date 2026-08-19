@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A following departure. Minutes lead, clock time and delay badge follow. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    app:cardCornerRadius="16dp"
+    style="@style/Widget.NT.Card">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:baselineAligned="false"
+        android:paddingStart="@dimen/nt_card_padding"
+        android:paddingEnd="@dimen/nt_card_padding"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
+
+        <LinearLayout
+            android:layout_width="85dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="bottom">
+
+            <com.nexttrain.ui.RollingTextView
+                android:id="@+id/tv_dep_mins"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="23"
+                android:textSize="24sp"
+                style="@style/NT.Text.Number" />
+
+            <TextView
+                android:id="@+id/tv_dep_mins_unit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:text="@string/min"
+                android:textSize="12sp"
+                android:textColor="@color/nt_sub"
+                style="@style/NT.Text" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:orientation="vertical">
+
+            <!-- Set via SpannableStringBuilder: "08:21" + strikethrough "08:16" -->
+            <com.nexttrain.ui.RollingTextView
+                android:id="@+id/tv_dep_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="08:21 08:16"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:fontFeatureSettings="tnum"
+                style="@style/NT.Text" />
+
+            <TextView
+                android:id="@+id/tv_dep_meta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="arrives 08:47"
+                android:textColor="@color/nt_sub"
+                style="@style/NT.Text.Caption" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_dep_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/nt_chip_late"
+            android:paddingStart="9dp"
+            android:paddingEnd="9dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="+5 late"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="@color/nt_late"
+            style="@style/NT.Text" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Next Train — dark palette. Same token names; only the values move. -->
+<resources>
+    <color name="nt_bg">#10161A</color>
+    <color name="nt_surface">#171F25</color>
+    <color name="nt_text">#E9EFF2</color>
+    <color name="nt_sub">#A8B8C2</color>
+    <color name="nt_muted">#8B9BA4</color>
+    <color name="nt_divider">#253039</color>
+    <color name="nt_chip">#1E272E</color>
+
+    <color name="nt_primary">#35CDB8</color>
+    <color name="nt_primary_bright">#35CDB8</color>
+    <color name="nt_primary_dark">#2AB3A0</color>
+    <color name="nt_primary_soft">#14262A</color>
+    <color name="nt_primary_line">#23474A</color>
+    <color name="nt_on_primary">#062522</color>
+
+    <color name="nt_late">#F2A65A</color>
+    <color name="nt_late_soft">#2A1D17</color>
+    <color name="nt_on_danger">#10161A</color>
+    <color name="nt_secondary">#A8B8C2</color>
+</resources>

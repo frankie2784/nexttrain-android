@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Leading indicator for the line spinner; tinted at runtime to the selected line's GTFS route_color. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <size android:width="12dp" android:height="12dp" />
+    <solid android:color="@color/nt_muted" />
+</shape>

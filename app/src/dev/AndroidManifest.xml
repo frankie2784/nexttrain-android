@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dev-flavor-only manifest fragment: adds a network security config that
+     permits cleartext HTTP to the LAN-only dev server. Merged into the main
+     manifest only for dev builds — prod keeps usesCleartextTraffic="false"
+     with no exception. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:networkSecurityConfig="@xml/network_security_config" />
+
+</manifest>

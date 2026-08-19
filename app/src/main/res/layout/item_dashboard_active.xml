@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dashboard hero: the route whose window is live right now. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:clickable="true"
+    android:focusable="true"
+    style="@style/Widget.NT.Card.Hero">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="18dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="14dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/nt_badge_active"
+                android:paddingStart="8dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+
+                <ImageView
+                    android:layout_width="5dp"
+                    android:layout_height="5dp"
+                    android:layout_marginEnd="7dp"
+                    android:src="@drawable/nt_dot_active"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/active_now"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.04"
+                    android:textColor="@color/nt_on_primary"
+                    style="@style/NT.Text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/iv_dash_chevron"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_chevron_right"
+                app:tint="@color/nt_muted"
+                android:contentDescription="@null" />
+
+            <LinearLayout
+                android:id="@+id/edit_controls"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageButton
+                    android:id="@+id/btn_row_reorder"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:background="@drawable/nt_icon_tile"
+                    android:src="@drawable/ic_unfold_more"
+                    android:scaleType="centerInside"
+                    app:tint="@color/nt_sub"
+                    android:contentDescription="@string/cd_reorder_route" />
+
+                <ImageButton
+                    android:id="@+id/btn_row_delete"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/nt_icon_tile"
+                    android:src="@drawable/ic_delete"
+                    android:scaleType="centerInside"
+                    app:tint="@color/nt_sub"
+                    android:contentDescription="@string/cd_delete_route" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_dash_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="3dp"
+            android:text="Morning commute"
+            android:textSize="16sp"
+            style="@style/NT.Text.CardTitle" />
+
+        <TextView
+            android:id="@+id/tv_dash_route"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="Fairfield ➝ Jolimont-MCG"
+            style="@style/NT.Text.Body" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false"
+            android:gravity="bottom">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="bottom">
+
+                <com.nexttrain.ui.RollingTextView
+                    android:id="@+id/tv_dash_mins"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="8"
+                    style="@style/NT.Text.Display.Card" />
+
+                <TextView
+                    android:id="@+id/tv_dash_mins_unit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/min"
+                    android:textSize="16sp"
+                    android:textColor="@color/nt_sub"
+                    style="@style/NT.Text" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="end">
+
+                <com.nexttrain.ui.RollingTextView
+                    android:id="@+id/tv_dash_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="08:06"
+                    style="@style/NT.Text.Clock" />
+
+                <TextView
+                    android:id="@+id/tv_dash_arrival"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="arrives 08:31"
+                    android:textColor="@color/nt_sub"
+                    style="@style/NT.Text.Caption" />
+
+                <LinearLayout
+                    android:id="@+id/chip_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/nt_chip_ok"
+                    android:paddingStart="9dp"
+                    android:paddingEnd="9dp"
+                    android:paddingTop="3dp"
+                    android:paddingBottom="3dp">
+
+                    <ImageView
+                        android:id="@+id/iv_status"
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:layout_marginEnd="4dp"
+                        android:src="@drawable/ic_check_circle"
+                        app:tint="@color/nt_primary"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:id="@+id/tv_dash_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/on_time"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/nt_primary"
+                        style="@style/NT.Text" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:background="@color/nt_primary_line" />
+
+        <TextView
+            android:id="@+id/tv_dash_following"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="13dp"
+            android:text="then 23 min 08:21  ·  38 min 08:36"
+            android:textColor="@color/nt_sub"
+            android:fontFeatureSettings="tnum"
+            style="@style/NT.Text.Caption" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

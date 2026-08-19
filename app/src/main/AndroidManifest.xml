@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One line differs from the original: android:name on <application>, so the
+     Appearance setting applies before the first activity inflates. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Lets the app ask the user to exempt it from Doze/App Standby battery
+         optimization, so the AlarmScheduler 1-minute chain keeps firing on
+         schedule instead of being throttled to Doze's maintenance-window
+         cadence once the screen's been off a while (see AlarmScheduler.kt). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <application
+        android:name=".NextTrainApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
+        android:theme="@style/Theme.TrainWidget">
+
+        <activity
+            android:name=".config.ConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TrainWidget">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".config.SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TrainWidget" />
+
+        <activity
+            android:name=".config.RouteDeparturesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TrainWidget" />
+
+        <receiver
+            android:name=".widget.TrainWidgetProviderLight"
+            android:label="@string/widget_label_light"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/appwidget_info_light" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TrainWidgetProviderDark"
+            android:label="@string/widget_label_dark"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/appwidget_info_dark" />
+        </receiver>
+
+        <!-- SECURITY: app-private widget control actions (refresh, cycle route)
+             live on this non-exported receiver rather than the exported widget
+             providers above — see WidgetActionReceiver's class doc. -->
+        <receiver
+            android:name=".widget.WidgetActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.nexttrain.ACTION_REFRESH" />
+                <action android:name="com.nexttrain.ACTION_CYCLE_ROUTE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".widget.AlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.nexttrain.ACTION_ALARM_UPDATE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".widget.NotificationDismissReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.nexttrain.action.DISMISS_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>

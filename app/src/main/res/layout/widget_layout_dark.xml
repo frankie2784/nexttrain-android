@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="56dp"
+    android:background="@drawable/widget_background_dark"
+    android:padding="5dp">
+
+    <LinearLayout
+        android:id="@+id/layout_normal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+        <TextView
+            android:id="@+id/tv_primary_minutes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4m"
+            android:textColor="@color/nt_widget_dark_fg"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tv_primary_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="(08:06)"
+            android:textColor="@color/nt_widget_dark_fg_strong"
+            android:textSize="14sp"
+            android:includeFontPadding="false"
+            android:layout_marginStart="3dp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_bullet_separator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="• "
+            android:textColor="@color/nt_widget_dark_fg_subtle"
+            android:textSize="14sp"
+            android:includeFontPadding="false"
+            android:layout_marginEnd="2dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="1dp">
+
+                <TextView
+                    android:id="@+id/tv_route_label"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Belgrave ➝ Flinders Street"
+                    android:textColor="@color/nt_widget_dark_fg"
+                    android:textSize="9sp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/tv_last_updated"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="↻ 08:04"
+                    android:textColor="@color/nt_widget_dark_fg_faint"
+                    android:textSize="7sp"
+                    android:includeFontPadding="false"
+                    android:layout_marginStart="4dp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tv_secondary_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="7m (08:09)"
+                    android:textColor="@color/nt_widget_dark_fg_strong"
+                    android:textSize="14sp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_secondary_separator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" •"
+                    android:textColor="@color/nt_widget_dark_fg_subtle"
+                    android:textSize="14sp"
+                    android:includeFontPadding="false"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_secondary_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12m (08:14)"
+                    android:textColor="@color/nt_widget_dark_fg_strong"
+                    android:textSize="14sp"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:layout_marginStart="4dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_no_trains"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No upcoming trains"
+                android:textColor="@color/nt_widget_dark_fg_faint"
+                android:textSize="14sp"
+                android:includeFontPadding="false"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:visibility="gone" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Idle state: sparkline + delay label; hidden when a route is active -->
+    <FrameLayout
+        android:id="@+id/layout_idle"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_sparkline"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingEnd="8dp">
+
+            <TextView
+                android:id="@+id/tv_delay_minutes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0m"
+                android:textColor="@color/nt_widget_dark_fg"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:id="@+id/tv_delay_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="delay"
+                android:textColor="@color/nt_widget_dark_fg_faint"
+                android:textSize="9sp"
+                android:includeFontPadding="false" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- Prompt/error state: centred message only, no title or placeholder time -->
+    <FrameLayout
+        android:id="@+id/layout_error"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_error_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:text="Next Train"
+            android:textColor="@color/nt_widget_dark_fg_faint"
+            android:textSize="9sp"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tv_error_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="Open the app to add a route"
+            android:textColor="@color/nt_widget_dark_fg_strong"
+            android:textSize="13sp"
+            android:includeFontPadding="false"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:id="@+id/tap_cycle_zone"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="9"
+            android:background="#00000000" />
+
+        <FrameLayout
+            android:id="@+id/tap_refresh_zone"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="#00000000" />
+    </LinearLayout>
+
+</FrameLayout>

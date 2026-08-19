@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Next Train — light palette. Direction 1b.
+     nt_primary is the TEXT-SAFE accent (white on it = 4.9:1).
+     nt_primary_bright is for non-text accents only (dots, rails, fills behind icons). -->
+<resources>
+    <color name="nt_bg">#F4F6F7</color>
+    <color name="nt_surface">#FFFFFF</color>
+    <color name="nt_text">#16232E</color>
+    <color name="nt_sub">#4C5D69</color>
+    <color name="nt_muted">#5F7079</color>
+    <color name="nt_divider">#E6EAED</color>
+    <color name="nt_chip">#F1F4F6</color>
+
+    <color name="nt_primary">#0F7D70</color>
+    <color name="nt_primary_bright">#25B6A2</color>
+    <color name="nt_primary_dark">#0B5F55</color>
+    <color name="nt_primary_soft">#EAF7F5</color>
+    <color name="nt_primary_line">#C6E9E2</color>
+    <color name="nt_on_primary">#FFFFFF</color>
+
+    <color name="nt_late">#A8431E</color>
+    <color name="nt_late_soft">#FBEEE8</color>
+    <!-- Text/icons on a filled nt_late surface (the Delete button). White clears AA on
+         the light nt_late; values-night flips it to dark ink, since white on the night
+         amber does not. -->
+    <color name="nt_on_danger">#FFFFFF</color>
+    <color name="nt_secondary">#4C5D69</color>
+
+    <!-- Widget + notification sit on the user's wallpaper. Next Train ships light and
+         dark widgets as separate, user-chosen home screen widgets (not tied to system
+         dark mode) — so both palettes live here, unqualified, rather than in
+         values-night. See TrainWidgetProviderLight/Dark and widget_layout_light/dark.xml. -->
+    <color name="nt_widget_light_bg">#E6FFFFFF</color>
+    <color name="nt_widget_light_border">#1F16232E</color>
+    <color name="nt_widget_light_fg">#FF16232E</color>
+    <color name="nt_widget_light_fg_strong">#D916232E</color>
+    <color name="nt_widget_light_fg_faint">#A616232E</color>
+    <color name="nt_widget_light_fg_subtle">#5516232E</color>
+    <color name="nt_widget_light_rule">#1F16232E</color>
+
+    <color name="nt_widget_dark_bg">#CC1A1A2E</color>
+    <color name="nt_widget_dark_border">#00000000</color>
+    <color name="nt_widget_dark_fg">#FFFFFFFF</color>
+    <color name="nt_widget_dark_fg_strong">#D9FFFFFF</color>
+    <color name="nt_widget_dark_fg_faint">#A6FFFFFF</color>
+    <color name="nt_widget_dark_fg_subtle">#55FFFFFF</color>
+    <color name="nt_widget_dark_rule">#1FFFFFFF</color>
+
+    <color name="nt_widget_accent">#35CDB8</color>
+    <color name="nt_widget_late">#F2A65A</color>
+    <color name="nt_widget_late_soft">#29F2A65A</color>
+</resources>
