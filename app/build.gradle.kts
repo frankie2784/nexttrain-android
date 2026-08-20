@@ -62,7 +62,7 @@ android {
         minSdk = 31  // Android 12 (widget lock screen support)
         targetSdk = 36
         versionCode = 2
-        versionName = "1.1"
+        versionName = "1.1.0"
 
         // SECURITY: shared API secret read from local.properties (gitignored) or
         // a CI environment variable at build time only — never hardcoded, never

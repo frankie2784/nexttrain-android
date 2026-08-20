@@ -88,7 +88,7 @@
     <string name="choose_region_title">Choose your region</string>
     <string name="choose_region_body">You can change this later in Settings.</string>
     <string name="continue_label">Continue</string>
-    <string name="version_line">Next Train · v1.0.0</string>
+    <string name="version_line">Next Train · v%1$s</string>
 
     <string name="battery_prompt_title">Keep updates on time</string>
     <string name="battery_prompt_message">Android\'s battery saver can slow down how often your notification and widget refresh in the background. Allow Next Train to run without battery optimizations so departure times stay up to date every minute.</string>
