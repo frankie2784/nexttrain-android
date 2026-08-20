@@ -114,6 +114,7 @@ object CommuteNotificationManager {
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOnlyAlertOnce(true)
+            .setShowWhen(false)
             .setContentIntent(openIntent)
             .addAction(0, "Dismiss", dismissIntent)
             .build()
