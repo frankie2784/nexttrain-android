@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButtonToggleGroup
 import androidx.appcompat.widget.SwitchCompat
+import com.nexttrain.BuildConfig
 import com.nexttrain.R
 import com.nexttrain.api.NextTrainApiClient
 import com.nexttrain.data.Region
@@ -41,6 +42,15 @@ class SettingsActivity : AppCompatActivity() {
         setupTimeFormatSection()
         setupRegionSection()
         setupSupportSection()
+        setupVersionLine()
+    }
+
+    // Reads the version straight from BuildConfig (sourced from versionName in
+    // build.gradle.kts) instead of a hardcoded string, so it can't drift from
+    // the version actually shipped in the build — tag GitHub releases to match.
+    private fun setupVersionLine() {
+        findViewById<TextView>(R.id.tv_version_line).text =
+            getString(R.string.version_line, BuildConfig.VERSION_NAME)
     }
 
     private fun setupNotificationSection() {
