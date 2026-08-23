@@ -16,6 +16,7 @@ import android.text.Spanned
 import android.text.style.RelativeSizeSpan
 import android.text.style.StyleSpan
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
@@ -482,24 +483,36 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
             views.setTextViewText(R.id.tv_no_trains, "No trains found")
         } else {
             val primary = departures[0]
-            views.setTextViewText(R.id.tv_primary_minutes, departureMinutesText(primary))
+            val primaryMinutesText = departureMinutesText(primary)
+            views.setTextViewText(R.id.tv_primary_minutes, primaryMinutesText)
+            views.setTextViewTextSize(R.id.tv_primary_minutes, TypedValue.COMPLEX_UNIT_SP, primaryTextSizeSp(primaryMinutesText))
             views.setTextViewText(R.id.tv_primary_time, "(${Formatting.formatTimeCompact(use24Hour, primary.expectedTime)})")
 
             val second = departures.getOrNull(1)
-            if (second != null) {
-                views.setTextViewText(R.id.tv_secondary_1, compactDepartureText(use24Hour, second))
+            val secondText = second?.let { compactDepartureText(use24Hour, it) }
+            if (secondText != null) {
+                views.setTextViewText(R.id.tv_secondary_1, secondText)
                 views.setViewVisibility(R.id.tv_secondary_1, View.VISIBLE)
             } else {
                 views.setViewVisibility(R.id.tv_secondary_1, View.INVISIBLE)
             }
 
             val third = departures.getOrNull(2)
-            if (third != null) {
-                views.setTextViewText(R.id.tv_secondary_2, compactDepartureText(use24Hour, third))
+            val thirdText = third?.let { compactDepartureText(use24Hour, it) }
+            if (thirdText != null) {
+                views.setTextViewText(R.id.tv_secondary_2, thirdText)
                 views.setViewVisibility(R.id.tv_secondary_2, View.VISIBLE)
             } else {
                 views.setViewVisibility(R.id.tv_secondary_2, View.INVISIBLE)
             }
+
+            // Longer durations ("12h34m (14:23)") won't fit at the default size next to
+            // each other — shrink both secondary rows together, keyed off whichever is
+            // longer, so the two stay visually matched instead of one looking mismatched.
+            val secondaryLength = maxOf(secondText?.length ?: 0, thirdText?.length ?: 0)
+            val secondarySize = secondaryTextSizeSp(secondaryLength)
+            views.setTextViewTextSize(R.id.tv_secondary_1, TypedValue.COMPLEX_UNIT_SP, secondarySize)
+            views.setTextViewTextSize(R.id.tv_secondary_2, TypedValue.COMPLEX_UNIT_SP, secondarySize)
 
             views.setViewVisibility(
                 R.id.tv_secondary_separator,
@@ -578,11 +591,22 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
         views.setOnClickPendingIntent(R.id.tap_cycle_zone, cyclePi)
     }
 
-    private fun departureMinutesText(dep: Departure): String = when {
-        dep.minutesUntilDeparture <= 0 -> "Now"
-        dep.minutesUntilDeparture == 1L -> "1m"
-        dep.minutesUntilDeparture > 120 -> "${dep.minutesUntilDeparture / 60}h"
-        else -> "${dep.minutesUntilDeparture}m"
+    private fun departureMinutesText(dep: Departure): String = Formatting.minutesCompact(dep)
+
+    /** Default 20sp fits "23"/"Now"; hour-and-minute durations ("12h34m") need to shrink to stay on one line. */
+    private fun primaryTextSizeSp(text: CharSequence): Float = when {
+        text.length <= 2 -> 20f
+        text.length <= 4 -> 18f
+        text.length <= 6 -> 15f
+        else -> 13f
+    }
+
+    /** Default 14sp fits the sample "12m (08:14)" (11 chars); longer durations shrink so both rows still fit their column. */
+    private fun secondaryTextSizeSp(length: Int): Float = when {
+        length <= 11 -> 14f
+        length <= 13 -> 12.5f
+        length <= 15 -> 11f
+        else -> 10f
     }
 
     private fun compactDepartureText(use24Hour: Boolean, dep: Departure): CharSequence {

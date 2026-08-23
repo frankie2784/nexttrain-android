@@ -3,7 +3,10 @@ package com.nexttrain.ui
 import android.content.Context
 import android.text.SpannableStringBuilder
 import android.text.Spanned
+import android.text.TextPaint
 import android.text.style.ForegroundColorSpan
+import android.text.style.MetricAffectingSpan
+import android.text.style.RelativeSizeSpan
 import android.text.style.StyleSpan
 import android.text.style.StrikethroughSpan
 import android.graphics.Typeface
@@ -16,6 +19,20 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+
+/**
+ * Forces normal (non-bold) weight regardless of the base TextView's style, since
+ * [StyleSpan] only ORs style bits onto the inherited typeface and can't un-bold
+ * text inside a view whose style already sets `textStyle="bold"`.
+ */
+private class NormalWeightSpan : MetricAffectingSpan() {
+    override fun updateDrawState(tp: TextPaint) = apply(tp)
+    override fun updateMeasureState(tp: TextPaint) = apply(tp)
+    private fun apply(tp: TextPaint) {
+        tp.isFakeBoldText = false
+        tp.typeface = Typeface.create(tp.typeface, Typeface.NORMAL)
+    }
+}
 
 /**
  * One place for the strings the redesign shows in more than one screen, so the
@@ -66,13 +83,64 @@ object Formatting {
         }
     }
 
-    /** "8" / "Now" — the number on its own, for the display-size TextView. */
-    fun minutesValue(dep: Departure): String =
-        if (dep.minutesUntilDeparture <= 0) "Now" else dep.minutesUntilDeparture.toString()
+    /**
+     * "8" / "Now" / "1 hr 43" / "2 hr" — the number on its own, for the display-size
+     * TextView. Past 59 minutes this leads with "N hr" so the display-size text stays
+     * consistent with the plain-minutes case; the trailing "min" (when there are
+     * leftover minutes) comes from [minutesUnit], same as the sub-60 case.
+     */
+    fun minutesValue(dep: Departure): String {
+        val total = dep.minutesUntilDeparture
+        return when {
+            total <= 0 -> "Now"
+            total < 60 -> total.toString()
+            total % 60 == 0L -> "${total / 60} hr"
+            else -> "${total / 60} hr ${total % 60}"
+        }
+    }
 
-    /** "min" — or empty when the value reads "Now" and a unit would be nonsense. */
+    /**
+     * Same as [minutesValue] but with "hr" rendered small and non-bold, for the big
+     * display-size TextViews (`NT.Text.Number`/`NT.Text.Display`) whose base style is
+     * bold — matches the look of the separate small "min" unit label next to it.
+     */
+    fun minutesValueSpanned(context: Context, dep: Departure): CharSequence {
+        val total = dep.minutesUntilDeparture
+        if (total <= 0) return "Now"
+        if (total < 60) return total.toString()
+
+        val hours = total / 60
+        val mins = total % 60
+        val subColor = ContextCompat.getColor(context, R.color.nt_sub)
+        val out = SpannableStringBuilder("$hours")
+        val hrStart = out.length
+        out.append(" hr")
+        val hrEnd = out.length
+        out.setSpan(NormalWeightSpan(), hrStart, hrEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        out.setSpan(RelativeSizeSpan(0.5f), hrStart, hrEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        out.setSpan(ForegroundColorSpan(subColor), hrStart, hrEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        if (mins != 0L) out.append(" ").append(mins.toString())
+        return out
+    }
+
+    /** "min" — empty when the value reads "Now" or a whole number of hours. */
     fun minutesUnit(context: Context, dep: Departure): String =
-        if (dep.minutesUntilDeparture <= 0) "" else context.getString(R.string.min)
+        if (dep.minutesUntilDeparture > 0 && dep.minutesUntilDeparture % 60 != 0L) {
+            context.getString(R.string.min)
+        } else {
+            ""
+        }
+
+    /** "Now" / "45m" / "1h5m" / "2h" — compact countdown for the notification and widget. */
+    fun minutesCompact(dep: Departure): String {
+        val total = dep.minutesUntilDeparture
+        return when {
+            total <= 0 -> "Now"
+            total < 60 -> "${total}m"
+            total % 60 == 0L -> "${total / 60}h"
+            else -> "${total / 60}h${total % 60}m"
+        }
+    }
 
     /** "On time" / "6 min late" / "2 min early" */
     fun status(dep: Departure): String = when {
@@ -122,7 +190,7 @@ object Formatting {
     fun windowShort(pair: OdPair): String =
         "active ${days(pair.activeDays)} ${pair.activeFrom}–${pair.activeTo}"
 
-    /** "then 25 min 17:48  ·  46 min 18:08" with each duration emphasized. */
+    /** "then 59m 17:48  ·  1h23m 18:08" with each duration emphasized. */
     fun followingDepartures(
         context: Context,
         use24Hour: Boolean,
@@ -133,7 +201,7 @@ object Formatting {
         departures.forEachIndexed { index, departure ->
             if (index > 0) out.append("  ·  ")
             val durationStart = out.length
-            out.append(minutesValue(departure)).append(" min")
+            out.append(minutesCompact(departure))
             val durationEnd = out.length
             out.setSpan(StyleSpan(Typeface.BOLD), durationStart, durationEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             out.setSpan(ForegroundColorSpan(emphasisColor), durationStart, durationEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)

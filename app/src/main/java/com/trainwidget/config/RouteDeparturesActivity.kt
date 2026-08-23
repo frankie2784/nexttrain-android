@@ -318,7 +318,7 @@ class RouteDeparturesActivity : AppCompatActivity() {
     }
 
     private fun bindHero(dep: Departure, offline: Boolean = false) {
-        findViewById<RollingTextView>(R.id.tv_hero_mins).text = Formatting.minutesValue(dep)
+        findViewById<RollingTextView>(R.id.tv_hero_mins).text = Formatting.minutesValueSpanned(this, dep)
         findViewById<TextView>(R.id.tv_hero_mins_unit).text = Formatting.minutesUnit(this, dep)
 
         findViewById<RollingTextView>(R.id.tv_hero_departs).text =
@@ -392,7 +392,7 @@ class RouteDeparturesActivity : AppCompatActivity() {
     }
 
     private fun bindRow(row: View, dep: Departure, offline: Boolean = false) {
-        row.findViewById<RollingTextView>(R.id.tv_dep_mins).text = Formatting.minutesValue(dep)
+        row.findViewById<RollingTextView>(R.id.tv_dep_mins).text = Formatting.minutesValueSpanned(this, dep)
         row.findViewById<TextView>(R.id.tv_dep_mins_unit).text = Formatting.minutesUnit(this, dep)
         row.findViewById<RollingTextView>(R.id.tv_dep_time).text = formatDepartureTime(dep)
         row.findViewById<TextView>(R.id.tv_dep_meta).text =

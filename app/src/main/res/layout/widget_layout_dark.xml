@@ -104,8 +104,9 @@
 
                 <TextView
                     android:id="@+id/tv_secondary_1"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="7m (08:09)"
                     android:textColor="@color/nt_widget_dark_fg_strong"
                     android:textSize="14sp"
@@ -126,8 +127,9 @@
 
                 <TextView
                     android:id="@+id/tv_secondary_2"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="12m (08:14)"
                     android:textColor="@color/nt_widget_dark_fg_strong"
                     android:textSize="14sp"
