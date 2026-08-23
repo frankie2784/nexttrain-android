@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Route editor. Was an AlertDialog with two bare Spinners; now a bottom sheet.
-     Ids kept identical to dialog_od_pair.xml so existing binding code still works,
-     plus et_label / spinner_origin / spinner_destination unchanged. -->
+     The origin/destination Spinners are now AutoCompleteTextViews (ac_origin /
+     ac_destination) so stations can be found by typing as well as by scrolling —
+     see RouteEditorSheet.bindStationPicker for the interaction. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -9,10 +10,14 @@
     android:fillViewport="true"
     android:background="@color/nt_surface">
 
+    <!-- focusableInTouchMode so clearing focus off a station field lands here rather
+         than jumping to the label field and re-opening the keyboard. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:paddingStart="@dimen/nt_gutter_wide"
         android:paddingEnd="@dimen/nt_gutter_wide"
         android:paddingTop="10dp"
@@ -154,13 +159,24 @@
                     app:tint="@color/nt_primary"
                     android:contentDescription="@null" />
 
-                <Spinner
-                    android:id="@+id/spinner_origin"
+                <AutoCompleteTextView
+                    android:id="@+id/ac_origin"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:minHeight="@dimen/nt_touch_min"
-                    android:background="@null" />
+                    android:background="@null"
+                    android:paddingVertical="12dp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="8dp"
+                    android:textColor="@color/nt_text"
+                    android:textColorHint="@color/nt_muted"
+                    android:textSize="14sp"
+                    android:singleLine="true"
+                    android:inputType="text"
+                    android:imeOptions="actionDone"
+                    android:dropDownVerticalOffset="8dp"
+                    android:popupBackground="@drawable/nt_field_bg" />
 
                 <ImageView
                     android:id="@+id/iv_dropdown_origin"
@@ -196,13 +212,24 @@
                     app:tint="@color/nt_primary"
                     android:contentDescription="@null" />
 
-                <Spinner
-                    android:id="@+id/spinner_destination"
+                <AutoCompleteTextView
+                    android:id="@+id/ac_destination"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:minHeight="@dimen/nt_touch_min"
-                    android:background="@null" />
+                    android:background="@null"
+                    android:paddingVertical="12dp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="8dp"
+                    android:textColor="@color/nt_text"
+                    android:textColorHint="@color/nt_muted"
+                    android:textSize="14sp"
+                    android:singleLine="true"
+                    android:inputType="text"
+                    android:imeOptions="actionDone"
+                    android:dropDownVerticalOffset="8dp"
+                    android:popupBackground="@drawable/nt_field_bg" />
 
                 <ImageView
                     android:id="@+id/iv_dropdown_destination"
