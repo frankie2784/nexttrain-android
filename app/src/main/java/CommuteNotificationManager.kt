@@ -127,12 +127,7 @@ object CommuteNotificationManager {
     }
 
     private fun formatNotificationLine(use24Hour: Boolean, dep: Departure): CharSequence {
-        val mins = when {
-            dep.minutesUntilDeparture <= 0 -> "Now"
-            dep.minutesUntilDeparture == 1L -> "1m"
-            dep.minutesUntilDeparture > 120 -> "${dep.minutesUntilDeparture / 60}h"
-            else -> "${dep.minutesUntilDeparture}m"
-        }
+        val mins = Formatting.minutesCompact(dep)
 
         val delaySuffix = if (dep.delayMinutes > 0) " (+${dep.delayMinutes})" else ""
         val expectedTime = Formatting.formatTime(use24Hour, dep.expectedTime)
@@ -149,12 +144,7 @@ object CommuteNotificationManager {
     }
 
     private fun formatNotificationSummary(use24Hour: Boolean, dep: Departure): String {
-        val mins = when {
-            dep.minutesUntilDeparture <= 0 -> "Now"
-            dep.minutesUntilDeparture == 1L -> "1m"
-            dep.minutesUntilDeparture > 120 -> "${dep.minutesUntilDeparture / 60}h"
-            else -> "${dep.minutesUntilDeparture}m"
-        }
+        val mins = Formatting.minutesCompact(dep)
 
         val expectedTime = Formatting.formatTimeCompact(use24Hour, dep.expectedTime)
         return "$mins $expectedTime"

@@ -304,7 +304,7 @@ class DashboardAdapter(
             }
 
             val use24Hour = use24HourFormat()
-            mins.setValue(Formatting.minutesValue(dep), roll)
+            mins.setValue(Formatting.minutesValueSpanned(ctx, dep), roll)
             minsUnit.text = Formatting.minutesUnit(ctx, dep)
             time.setValue(Formatting.departureTimeWithSchedule(ctx, use24Hour, dep), roll)
             arrival.text = dep.destinationDisplayTime?.let {
@@ -403,7 +403,7 @@ class DashboardAdapter(
                 return
             }
 
-            mins.setValue(Formatting.minutesValue(dep), roll)
+            mins.setValue(Formatting.minutesValueSpanned(ctx, dep), roll)
             minsUnit.text = Formatting.minutesUnit(ctx, dep)
             time.setValue(Formatting.departureTimeWithSchedule(ctx, use24HourFormat(), dep), roll)
             if (entry.unreachable) {
