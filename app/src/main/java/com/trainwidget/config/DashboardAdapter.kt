@@ -20,11 +20,11 @@ import com.nexttrain.ui.RollingTextView
 
 /**
  * Dashboard list. Two view types: the route whose window is live gets the hero
- * card, every other route gets a row. Replaces the single-layout adapter in
- * ConfigActivity.kt — the data class and the click callback are unchanged.
- *
- * Edit mode is an orthogonal per-adapter flag, not a third view type: each
- * view holder swaps its own metrics/chevron block for a delete+reorder block.
+ * card, every other route gets a row — except in edit mode, where every route
+ * (active or not) uses the row layout, since the hero's live departure detail
+ * has nothing useful to show while editing and would make that one pill an
+ * odd size out. Replaces the single-layout adapter in ConfigActivity.kt — the
+ * data class and the click callback are unchanged.
  */
 data class DashboardEntry(
     val pair: OdPair,
@@ -60,23 +60,71 @@ class DashboardAdapter(
     companion object {
         private const val TYPE_ACTIVE = 0
         private const val TYPE_ROW = 1
-        private const val PAYLOAD_EDIT_MODE = "edit_mode"
     }
 
     private val items = mutableListOf<DashboardEntry>()
+
+    // The user's actual saved order (what setItems() was handed, and what
+    // getPairs() persists), independent of the active-first sort applied to
+    // [items] for display outside edit mode. Lets a route that's currently
+    // active drop back to its normal position the moment edit mode opens,
+    // instead of staying pinned at the top while it's being edited.
+    private val baseOrder = mutableListOf<String>()
+
     var editMode: Boolean = false
         private set
 
+    /** Whether a route renders as the hero card under a given edit-mode state. */
+    private fun isHero(pair: OdPair, editMode: Boolean) =
+        !editMode && pair.isActiveNow() && pair.notificationsEnabled
+
     fun setEditMode(enabled: Boolean) {
         if (editMode == enabled) return
+        val wasEditMode = editMode
         editMode = enabled
-        notifyItemRangeChanged(0, itemCount, PAYLOAD_EDIT_MODE)
+        val newItems = if (editMode) {
+            items.sortedBy { baseOrder.indexOf(it.pair.id) }
+        } else {
+            items.sortedByDescending { it.pair.isActiveNow() && it.pair.notificationsEnabled }
+        }
+
+        // DiffUtil rather than notifyDataSetChanged so the routes that shift
+        // position (the active route dropping to its saved spot, and whatever
+        // it displaces) get a real move animation instead of just jumping —
+        // "slide into place". Every row's presentation (edit controls, window
+        // vs. following text) depends on editMode and not just on entry content,
+        // so areContentsTheSame is always false: every row still gets rebound,
+        // but supportsChangeAnimations is off (see ConfigActivity's RecyclerView
+        // setup) so that rebind is an instant in-place update, not a cross-fade —
+        // only the actual moves animate.
+        //
+        // The one route whose hero <-> row view type flips is deliberately
+        // *not* matched as "the same item" (areItemsTheSame false) even though
+        // its id is unchanged: RecyclerView's move animation only translates a
+        // view, it can't also interpolate the hero card's height down to a row's,
+        // so sliding it would overlap the rows swapping in underneath. Treating
+        // it as a remove-at-old-position + insert-at-new-position instead makes
+        // it fade out/in in place — the default add/remove animation — while
+        // every other route still slides normally around it.
+        val oldItems = items.toList()
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = oldItems.size
+            override fun getNewListSize() = newItems.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean {
+                val oldPair = oldItems[oldPos].pair
+                val newPair = newItems[newPos].pair
+                if (oldPair.id != newPair.id) return false
+                return isHero(oldPair, wasEditMode) == isHero(newPair, editMode)
+            }
+            override fun areContentsTheSame(oldPos: Int, newPos: Int) = false
+        })
+        items.clear()
+        items.addAll(newItems)
+        diff.dispatchUpdatesTo(this)
     }
 
-    override fun getItemViewType(position: Int): Int {
-        val pair = items[position].pair
-        return if (pair.isActiveNow() && pair.notificationsEnabled) TYPE_ACTIVE else TYPE_ROW
-    }
+    override fun getItemViewType(position: Int): Int =
+        if (isHero(items[position].pair, editMode)) TYPE_ACTIVE else TYPE_ROW
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -94,21 +142,6 @@ class DashboardAdapter(
             is ActiveVH -> holder.bind(entry)
             is RowVH -> holder.bind(entry)
         }
-    }
-
-    override fun onBindViewHolder(
-        holder: RecyclerView.ViewHolder,
-        position: Int,
-        payloads: MutableList<Any>,
-    ) {
-        if (payloads.contains(PAYLOAD_EDIT_MODE)) {
-            when (holder) {
-                is ActiveVH -> holder.bindEditMode(items[position])
-                is RowVH -> holder.bindEditMode(items[position])
-            }
-            return
-        }
-        super.onBindViewHolder(holder, position, payloads)
     }
 
     override fun getItemCount() = items.size
@@ -134,8 +167,13 @@ class DashboardAdapter(
     }
 
     fun setItems(newItems: List<DashboardEntry>) {
+        baseOrder.clear()
+        baseOrder.addAll(newItems.map { it.pair.id })
         items.clear()
-        items.addAll(newItems.sortedByDescending { it.pair.isActiveNow() && it.pair.notificationsEnabled })
+        items.addAll(
+            if (editMode) newItems
+            else newItems.sortedByDescending { it.pair.isActiveNow() && it.pair.notificationsEnabled }
+        )
         notifyDataSetChanged()
     }
 
@@ -167,9 +205,12 @@ class DashboardAdapter(
         diff.dispatchUpdatesTo(this)
     }
 
+    /** Drag reorder, only ever active in edit mode — where [items] already matches
+     *  [baseOrder], so the two are kept in lockstep. */
     fun moveItems(fromPosition: Int, toPosition: Int) {
         if (fromPosition == toPosition) return
         items.add(toPosition, items.removeAt(fromPosition))
+        baseOrder.add(toPosition, baseOrder.removeAt(fromPosition))
         notifyItemMoved(fromPosition, toPosition)
     }
 
@@ -179,6 +220,7 @@ class DashboardAdapter(
         val index = items.indexOfFirst { it.pair.id == pairId }
         if (index >= 0) {
             items.removeAt(index)
+            baseOrder.remove(pairId)
             notifyItemRemoved(index)
         }
         return index
@@ -187,6 +229,7 @@ class DashboardAdapter(
     fun insertEntry(index: Int, entry: DashboardEntry) {
         val at = index.coerceIn(0, items.size)
         items.add(at, entry)
+        baseOrder.add(at.coerceAtMost(baseOrder.size), entry.pair.id)
         notifyItemInserted(at)
     }
 
@@ -229,18 +272,16 @@ class DashboardAdapter(
         private val statusIcon: ImageView = view.findViewById(R.id.iv_status)
         private val statusChip: LinearLayout = view.findViewById(R.id.chip_status)
         private val following: TextView = view.findViewById(R.id.tv_dash_following)
-        private val chevron: ImageView = view.findViewById(R.id.iv_dash_chevron)
-        private val editControls: LinearLayout = view.findViewById(R.id.edit_controls)
-        private val btnDelete: ImageButton = view.findViewById(R.id.btn_row_delete)
-        private val btnReorder: ImageButton = view.findViewById(R.id.btn_row_reorder)
 
         // The recycler hands this holder to whichever route scrolls into it, so
         // a bind is only a value *change* — the thing worth rolling — when it
         // is the same route as last time. Otherwise the numbers are swapped in.
         private var boundPairId: String? = null
 
+        // Only ever bound when !editMode — edit mode forces every route,
+        // active or not, into RowVH — so there is no edit-mode branch here.
         fun bind(entry: DashboardEntry) {
-            bindEditMode(entry)
+            updateFollowing(entry)
             val ctx = itemView.context
             val roll = boundPairId == entry.pair.id
             boundPairId = entry.pair.id
@@ -305,14 +346,7 @@ class DashboardAdapter(
             }
         }
 
-        /** Shows the route's active-times window in edit mode, the upcoming departures otherwise. */
         private fun updateFollowing(entry: DashboardEntry) {
-            setAlarmIcon(following, editMode)
-            if (editMode) {
-                following.visibility = View.VISIBLE
-                following.text = Formatting.window(entry.pair)
-                return
-            }
             val rest = entry.upcoming.drop(1).take(2)
             if (rest.isEmpty()) {
                 following.visibility = View.GONE
@@ -321,17 +355,13 @@ class DashboardAdapter(
                 following.text = Formatting.followingDepartures(itemView.context, use24HourFormat(), rest)
             }
         }
-
-        fun bindEditMode(entry: DashboardEntry) {
-            bindEditControls(editControls, chevron, btnDelete, btnReorder, entry, this)
-            updateFollowing(entry)
-        }
     }
 
     // ── Inactive row ──────────────────────────────────────────────────────
 
     private inner class RowVH(view: View) : RecyclerView.ViewHolder(view) {
         private val label: TextView = view.findViewById(R.id.tv_dash_label)
+        private val activeDot: ImageView = view.findViewById(R.id.iv_dash_active_dot)
         private val route: TextView = view.findViewById(R.id.tv_dash_route)
         private val window: TextView = view.findViewById(R.id.tv_dash_window)
         private val mins: RollingTextView = view.findViewById(R.id.tv_dash_mins)
@@ -352,6 +382,11 @@ class DashboardAdapter(
             val roll = boundPairId == entry.pair.id
             boundPairId = entry.pair.id
             label.text = entry.pair.label
+            // Row layout is used for the active route while editing (see
+            // getItemViewType) as well as for genuinely inactive routes, so
+            // the dot is the only thing left marking which one is live.
+            activeDot.visibility =
+                if (entry.pair.isActiveNow() && entry.pair.notificationsEnabled) View.VISIBLE else View.GONE
             route.text = "${entry.pair.originName} ➝ ${entry.pair.destinationName}"
 
             val dep = entry.upcoming.firstOrNull()

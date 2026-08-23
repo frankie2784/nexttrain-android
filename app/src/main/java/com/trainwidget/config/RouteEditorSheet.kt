@@ -9,10 +9,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
+import android.widget.Filter
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Spinner
@@ -74,41 +77,92 @@ private data class LineStationDto(
 private data class LineStationsResponse(val stations: List<LineStationDto> = emptyList())
 
 /**
- * ArrayAdapter that (a) bolds the currently selected item within the dropdown
- * list itself, so it stays identifiable once the list is open and scrolled
- * (the collapsed spinner already shows it, but the long open list doesn't),
- * and (b) can render specific positions greyed-out and unselectable — used to
- * show the origin station in-place in the destination list for context.
+ * Filtering adapter behind the origin and destination [AutoCompleteTextView]s.
+ *
+ * With no query it shows [source] untouched, in whatever order the caller already
+ * sorted it (alphabetical, or by line sequence), so tapping a field and scrolling
+ * browses exactly the list the old Spinner did — with the current selection bolded
+ * so it stays identifiable once the list is long and scrolled. Typing narrows to a
+ * case-insensitive substring match.
+ *
+ * [blockedStopId] is the one station that can't be picked here — the origin, in the
+ * destination list. It stays in the unfiltered list, greyed out and unselectable, for
+ * positional context; but it drops out entirely the moment the user types anything,
+ * even its own name, since a search hit that can't be tapped is worse than one that
+ * was never offered.
  */
-private class StationSpinnerAdapter(
+private class StationFilterAdapter(
     context: android.content.Context,
-    items: List<String>,
-) : ArrayAdapter<String>(context, R.layout.spinner_item_contrast, items) {
-    var selectedPosition: Int = -1
+    private val source: List<Station>,
+    private val blockedStopId: Int?,
+) : ArrayAdapter<Station>(context, R.layout.spinner_dropdown_item_contrast, source.toMutableList()) {
+
+    private var shown: List<Station> = source
+    private var showingFullList: Boolean = true
+
+    /** Bolded in the dropdown. Set by the caller alongside the field's own text. */
+    var selectedStopId: Int? = null
         set(value) {
             field = value
             notifyDataSetChanged()
         }
 
-    var disabledPositions: Set<Int> = emptySet()
-        set(value) {
-            field = value
-            notifyDataSetChanged()
-        }
+    override fun getCount(): Int = shown.size
 
-    init {
-        setDropDownViewResource(R.layout.spinner_dropdown_item_contrast)
+    override fun getItem(position: Int): Station? = shown.getOrNull(position)
+
+    /**
+     * Restores the unfiltered list synchronously. Reopening a blanked field can't wait
+     * for [Filter]'s background pass — the dropdown would show the previous query's
+     * matches for a frame before catching up.
+     */
+    fun resetToFullList() {
+        shown = source
+        showingFullList = true
+        notifyDataSetChanged()
     }
 
-    override fun areAllItemsEnabled(): Boolean = disabledPositions.isEmpty()
+    override fun getFilter(): Filter = object : Filter() {
+        override fun performFiltering(constraint: CharSequence?): FilterResults {
+            val query = constraint?.toString()?.trim().orEmpty()
+            val matches = if (query.isEmpty()) {
+                source
+            } else {
+                source.filter { it.stopId != blockedStopId && it.name.contains(query, ignoreCase = true) }
+            }
+            return FilterResults().apply { values = matches; count = matches.size }
+        }
 
-    override fun isEnabled(position: Int): Boolean = position !in disabledPositions
+        @Suppress("UNCHECKED_CAST")
+        override fun publishResults(constraint: CharSequence?, results: FilterResults) {
+            shown = results.values as? List<Station> ?: emptyList()
+            showingFullList = constraint?.toString()?.trim().isNullOrEmpty()
+            notifyDataSetChanged()
+        }
 
-    override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val rowView = super.getDropDownView(position, convertView, parent)
-        val disabled = position in disabledPositions
+        override fun convertResultToString(resultValue: Any?): String =
+            (resultValue as? Station)?.name.orEmpty()
+    }
+
+    override fun areAllItemsEnabled(): Boolean = false
+
+    override fun isEnabled(position: Int): Boolean =
+        !(showingFullList && blockedStopId != null && shown.getOrNull(position)?.stopId == blockedStopId)
+
+    // AutoCompleteTextView's popup list is a plain ListView over this adapter, not a
+    // Spinner — it renders rows via getView(), never getDropDownView() (that split only
+    // matters for Spinner). Overriding the wrong one leaves getView() falling through to
+    // ArrayAdapter's default, which renders Station's data-class toString().
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val rowView = super.getView(position, convertView, parent)
+        val station = shown.getOrNull(position)
+        val disabled = !isEnabled(position)
         (rowView as? TextView)?.apply {
-            setTypeface(null, if (position == selectedPosition && !disabled) Typeface.BOLD else Typeface.NORMAL)
+            text = station?.name.orEmpty()
+            setTypeface(
+                null,
+                if (station?.stopId == selectedStopId && !disabled) Typeface.BOLD else Typeface.NORMAL,
+            )
             setTextColor(
                 androidx.core.content.ContextCompat.getColor(
                     context, if (disabled) R.color.nt_muted else R.color.nt_text
@@ -164,13 +218,20 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        (dialog as? BottomSheetDialog)?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            ?.let { bottomSheet ->
-                BottomSheetBehavior.from(bottomSheet).apply {
-                    skipCollapsed = true
-                    state = BottomSheetBehavior.STATE_EXPANDED
+        (dialog as? BottomSheetDialog)?.let { sheetDialog ->
+            sheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                ?.let { bottomSheet ->
+                    BottomSheetBehavior.from(bottomSheet).apply {
+                        skipCollapsed = true
+                        state = BottomSheetBehavior.STATE_EXPANDED
+                    }
                 }
-            }
+            // A dialog's window doesn't resize for the keyboard by default (unlike an
+            // Activity's, which picks up windowSoftInputMode from the manifest). Without
+            // this, the origin/destination dropdowns compute their position against the
+            // full, keyboard-less screen height and end up rendered underneath the IME.
+            sheetDialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, saved: Bundle?): View =
@@ -187,8 +248,8 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
         val etLabel = view.findViewById<TextInputEditText>(R.id.et_label)
         val spinnerLine = view.findViewById<Spinner>(R.id.spinner_line)
         val dotLineColor = view.findViewById<ImageView>(R.id.dot_line_color)
-        val spinnerOrigin = view.findViewById<Spinner>(R.id.spinner_origin)
-        val spinnerDest = view.findViewById<Spinner>(R.id.spinner_destination)
+        val acOrigin = view.findViewById<AutoCompleteTextView>(R.id.ac_origin)
+        val acDestination = view.findViewById<AutoCompleteTextView>(R.id.ac_destination)
         val tvFrom = view.findViewById<TextView>(R.id.tv_time_from)
         val tvTo = view.findViewById<TextView>(R.id.tv_time_to)
         val tvError = view.findViewById<TextView>(R.id.tv_error)
@@ -209,12 +270,6 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
 
         view.findViewById<android.widget.ImageView>(R.id.iv_dropdown_line).setOnClickListener {
             spinnerLine.performClick()
-        }
-        view.findViewById<android.widget.ImageView>(R.id.iv_dropdown_origin).setOnClickListener {
-            spinnerOrigin.performClick()
-        }
-        view.findViewById<android.widget.ImageView>(R.id.iv_dropdown_destination).setOnClickListener {
-            spinnerDest.performClick()
         }
 
         title.setText(if (current == null) R.string.new_route else R.string.edit_route)
@@ -346,6 +401,87 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
         var selectedDestStopId: Int? = current?.destinationStopId
         var suppressSpinnerCallbacks = false
 
+        /**
+         * Wires one station field so it reads as a picker until it's touched and as a
+         * search box once it is.
+         *
+         * Focusing it blanks the text and drops the selected station's name into the hint,
+         * so the field is immediately ready to type into while still showing what's
+         * currently chosen; the dropdown opens on the full list with that station bolded.
+         * The selection itself only ever changes by tapping a row — typing and then
+         * dismissing restores the previous station, exactly as the Spinner's
+         * pick-or-nothing contract did.
+         */
+        fun bindStationPicker(
+            field: AutoCompleteTextView,
+            chevron: ImageView,
+            selectedStation: () -> Station?,
+            onPicked: (Station) -> Unit,
+        ) {
+            fun blankForSearch() {
+                field.hint = selectedStation()?.name
+                // Not setText("") — AutoCompleteTextView's threshold floors at 1, so an
+                // emptied field never re-filters itself; reset the adapter directly.
+                field.setText("", false)
+                (field.adapter as? StationFilterAdapter)?.resetToFullList()
+                // Posted: showDropDown() called synchronously from inside a focus-change
+                // callback (itself often triggered mid-touch-event, before the click that
+                // caused it finishes dispatching) can be dropped by the popup's own
+                // positioning logic. Posting runs it once the current dispatch settles.
+                field.post { if (field.hasFocus()) field.showDropDown() }
+            }
+
+            // Native touch handling already requests focus on tap, before onClick fires —
+            // so the actual blanking is driven from here, once, rather than split across
+            // both callbacks (which double-fired: focus-gained, then the click on top of it).
+            field.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    blankForSearch()
+                } else {
+                    // Whatever was typed is discarded — the selection is authoritative.
+                    field.setText(selectedStation()?.name.orEmpty(), false)
+                }
+            }
+
+            field.setOnClickListener {
+                if (field.hasFocus()) blankForSearch() else field.requestFocus()
+            }
+
+            chevron.setOnClickListener {
+                if (field.hasFocus()) {
+                    blankForSearch()
+                } else {
+                    field.requestFocus()
+                }
+                field.context.getSystemService(InputMethodManager::class.java)
+                    ?.showSoftInput(field, InputMethodManager.SHOW_IMPLICIT)
+            }
+
+            field.onItemClickListener = AdapterView.OnItemClickListener { parent, _, position, _ ->
+                val picked = (parent.adapter as? StationFilterAdapter)?.getItem(position)
+                    ?: return@OnItemClickListener
+                onPicked(picked)
+                field.hint = picked.name
+                field.context.getSystemService(InputMethodManager::class.java)
+                    ?.hideSoftInputFromWindow(field.windowToken, 0)
+                // Drops focus to the sheet's focusableInTouchMode root, which restores the
+                // field's text from the selection just made.
+                field.clearFocus()
+                clearError()
+            }
+
+            field.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    field.context.getSystemService(InputMethodManager::class.java)
+                        ?.hideSoftInputFromWindow(field.windowToken, 0)
+                    field.clearFocus()
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
         fun applyDestStations(
             originStopId: Int,
             candidates: List<Station>,
@@ -380,28 +516,27 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
                 destStations.sortedBy { it.name }
             }
 
-            val originIdx = destStations.indexOfFirst { it.stopId == originStopId }
-            val destAdapter = StationSpinnerAdapter(requireContext(), destStations.map { it.name })
-            destAdapter.disabledPositions = if (originIdx >= 0) setOf(originIdx) else emptySet()
-            spinnerDest.adapter = destAdapter
+            val destAdapter = StationFilterAdapter(requireContext(), destStations, originStopId)
+            acDestination.setAdapter(destAdapter)
 
             val targetStopId = preferredStopId ?: selectedDestStopId ?: pendingDestStopId
-            var selectedIdx = targetStopId
+            val selected = targetStopId
                 ?.takeIf { it != originStopId }
-                ?.let { id -> destStations.indexOfFirst { it.stopId == id } } ?: -1
-            if (selectedIdx < 0) {
-                // No valid target (or it resolved to the disabled origin row) — fall back
-                // to the first selectable station so the origin is never auto-selected.
-                selectedIdx = destStations.indices.firstOrNull { it != originIdx } ?: -1
-            }
-            if (selectedIdx >= 0) {
-                suppressSpinnerCallbacks = true
-                spinnerDest.setSelection(selectedIdx)
-                suppressSpinnerCallbacks = false
-                selectedDestStopId = destStations[selectedIdx].stopId
+                ?.let { id -> destStations.firstOrNull { it.stopId == id } }
+                // No valid target (or it resolved to the origin) — fall back to the first
+                // selectable station so the origin is never auto-selected.
+                ?: destStations.firstOrNull { it.stopId != originStopId }
+
+            selectedDestStopId = selected?.stopId
+            destAdapter.selectedStopId = selected?.stopId
+            acDestination.hint = selected?.name
+            // The `false` suppresses AutoCompleteTextView's own filter/dropdown, since this
+            // is a programmatic preselection rather than the user typing or tapping a match.
+            // While the field is focused the user is mid-search, so leave their query alone.
+            if (!acDestination.hasFocus()) {
+                acDestination.setText(selected?.name.orEmpty(), false)
             }
             if (consumePending && pendingDestStopId == targetStopId) pendingDestStopId = null
-            destAdapter.selectedPosition = spinnerDest.selectedItemPosition
         }
 
         fun updateDestSpinner(
@@ -410,11 +545,8 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
             orderedByLine: Boolean = false,
             preserveSavedDestination: Boolean = true,
         ) {
-            val currentDestStopId = spinnerDest.selectedItemPosition
-                .takeIf { it in destStations.indices }
-                ?.let { destStations[it].stopId }
             val targetDestStopId =
-                preferredDestStopId ?: selectedDestStopId ?: currentDestStopId ?: pendingDestStopId
+                preferredDestStopId ?: selectedDestStopId ?: pendingDestStopId
             val consumePending = targetDestStopId != null && targetDestStopId == pendingDestStopId
 
             applyDestStations(
@@ -431,7 +563,7 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
             // just redundantly refetch the same ordering, so skip it.
             if (orderedByLine || serverUrl.isBlank()) return
 
-            spinnerDest.isEnabled = false
+            acDestination.isEnabled = false
             filterJob?.cancel()
             filterJob = viewLifecycleOwner.lifecycleScope.launch {
                 val filteredByLine = withContext(Dispatchers.IO) {
@@ -464,7 +596,7 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
                 } else if (pendingDestStopId != null) {
                     pendingDestStopId = null
                 }
-                spinnerDest.isEnabled = true
+                acDestination.isEnabled = true
             }
         }
 
@@ -493,27 +625,26 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
                 }
             }
 
-            val originAdapter = StationSpinnerAdapter(requireContext(), originStations.map { it.name })
-            spinnerOrigin.adapter = originAdapter
+            // Nothing is blocked in the origin list — the destination stays pickable as an
+            // origin, since swapping the two ends of a journey is a reasonable edit.
+            val originAdapter = StationFilterAdapter(requireContext(), originStations, null)
+            acOrigin.setAdapter(originAdapter)
 
             val targetStopId = pendingOriginStopId ?: selectedOriginStopId ?: current?.originStopId
-            if (targetStopId != null) {
-                val idx = originStations.indexOfFirst { it.stopId == targetStopId }
-                if (idx >= 0) {
-                    suppressSpinnerCallbacks = true
-                    spinnerOrigin.setSelection(idx)
-                    suppressSpinnerCallbacks = false
-                    selectedOriginStopId = originStations[idx].stopId
-                }
-                pendingOriginStopId = null
-            }
-            originAdapter.selectedPosition = spinnerOrigin.selectedItemPosition
+            val selected = targetStopId?.let { id -> originStations.firstOrNull { it.stopId == id } }
+                ?: originStations.firstOrNull()
+            if (targetStopId != null) pendingOriginStopId = null
 
-            if (originStations.isNotEmpty()) {
-                val selected = spinnerOrigin.selectedItemPosition
-                val idx = if (selected in originStations.indices) selected else 0
+            selectedOriginStopId = selected?.stopId
+            originAdapter.selectedStopId = selected?.stopId
+            acOrigin.hint = selected?.name
+            if (!acOrigin.hasFocus()) {
+                acOrigin.setText(selected?.name.orEmpty(), false)
+            }
+
+            if (selected != null) {
                 updateDestSpinner(
-                    originStations[idx].stopId,
+                    selected.stopId,
                     pendingDestStopId,
                     orderedByLine,
                     preserveSavedDestination,
@@ -528,8 +659,8 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
             stationCatalogJob?.cancel()
             if (serverUrl.isBlank()) return
             val regionAtFetchTime = selectedRegion
-            spinnerOrigin.isEnabled = false
-            spinnerDest.isEnabled = false
+            acOrigin.isEnabled = false
+            acDestination.isEnabled = false
             stationCatalogJob = viewLifecycleOwner.lifecycleScope.launch {
                 val catalogStations = withContext(Dispatchers.IO) {
                     try {
@@ -557,8 +688,8 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
                 } else if (selectedLineId == null) {
                     applyOriginStations(offlineFallbackStations(regionAtFetchTime))
                 }
-                spinnerOrigin.isEnabled = true
-                spinnerDest.isEnabled = true
+                acOrigin.isEnabled = true
+                acDestination.isEnabled = true
             }
         }
         fetchStationCatalogForSelectedRegion()
@@ -591,8 +722,8 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
 
             if (serverUrl.isBlank()) return
 
-            spinnerOrigin.isEnabled = false
-            spinnerDest.isEnabled = false
+            acOrigin.isEnabled = false
+            acDestination.isEnabled = false
             val regionAtFetchTime = selectedRegion
             lineFilterJob = viewLifecycleOwner.lifecycleScope.launch {
                 val lineStations = withContext(Dispatchers.IO) {
@@ -639,8 +770,8 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
                         preserveSavedDestination = !resetInvalidStations,
                     )
                 }
-                spinnerOrigin.isEnabled = true
-                spinnerDest.isEnabled = true
+                acOrigin.isEnabled = true
+                acDestination.isEnabled = true
             }
         }
 
@@ -705,30 +836,28 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
-        spinnerOrigin.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, v: View?, position: Int, id: Long) {
-                if (suppressSpinnerCallbacks) return
-                if (position in originStations.indices) {
-                    selectedOriginStopId = originStations[position].stopId
-                    (spinnerOrigin.adapter as? StationSpinnerAdapter)?.selectedPosition = position
-                    updateDestSpinner(originStations[position].stopId, orderedByLine = selectedLineId != null)
-                }
-                clearError()
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
-        }
+        bindStationPicker(
+            field = acOrigin,
+            chevron = view.findViewById(R.id.iv_dropdown_origin),
+            selectedStation = { selectedOriginStopId?.let { id -> originStations.firstOrNull { it.stopId == id } } },
+            onPicked = { picked ->
+                selectedOriginStopId = picked.stopId
+                (acOrigin.adapter as? StationFilterAdapter)?.selectedStopId = picked.stopId
+                // Changing origin re-derives the destination candidates, which rebuilds
+                // the destination adapter and resolves its selection.
+                updateDestSpinner(picked.stopId, orderedByLine = selectedLineId != null)
+            },
+        )
 
-        spinnerDest.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, v: View?, position: Int, id: Long) {
-                if (suppressSpinnerCallbacks) return
-                if (position in destStations.indices) {
-                    selectedDestStopId = destStations[position].stopId
-                    (spinnerDest.adapter as? StationSpinnerAdapter)?.selectedPosition = position
-                }
-                clearError()
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
-        }
+        bindStationPicker(
+            field = acDestination,
+            chevron = view.findViewById(R.id.iv_dropdown_destination),
+            selectedStation = { selectedDestStopId?.let { id -> destStations.firstOrNull { it.stopId == id } } },
+            onPicked = { picked ->
+                selectedDestStopId = picked.stopId
+                (acDestination.adapter as? StationFilterAdapter)?.selectedStopId = picked.stopId
+            },
+        )
 
         // ── Time window ────────────────────────────────────────────────────
 
@@ -784,17 +913,18 @@ class RouteEditorSheet : BottomSheetDialogFragment() {
         view.findViewById<MaterialButton>(R.id.btn_cancel).setOnClickListener { dismiss() }
 
         view.findViewById<MaterialButton>(R.id.btn_save).setOnClickListener {
-            val originPos = spinnerOrigin.selectedItemPosition
-            val destPos = spinnerDest.selectedItemPosition
-            if (originPos !in originStations.indices) {
+            // Neither field has a "selected position" any more now that both are filtering
+            // text fields — the selected stop ids are set only when the user taps a
+            // suggestion, so typed-but-unconfirmed text leaves the prior selection standing.
+            val origin = selectedOriginStopId?.let { id -> originStations.firstOrNull { it.stopId == id } }
+            if (origin == null) {
                 showError(R.string.err_origin_invalid); return@setOnClickListener
             }
-            if (destPos !in destStations.indices) {
+            val destination = selectedDestStopId?.let { id -> destStations.firstOrNull { it.stopId == id } }
+            if (destination == null) {
                 showError(R.string.err_destination_invalid); return@setOnClickListener
             }
 
-            val origin = originStations[originPos]
-            val destination = destStations[destPos]
             if (origin.stopId == destination.stopId) {
                 showError(R.string.err_same_station); return@setOnClickListener
             }
