@@ -13,6 +13,7 @@ import androidx.appcompat.widget.AppCompatTextView
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * A TextView that, when its value changes, rolls the old text out of the top
@@ -60,6 +61,17 @@ class RollingTextView @JvmOverloads constructor(
     private var changedStart = 0
     private var changedEnd = 0
     private var partial = false
+
+    /**
+     * True when the value's length changed (e.g. "10" → "9"), so the roll is
+     * split into fixed right-aligned digit columns instead of one window.
+     * [columnPrefix]/[columnSuffix] are the common lead-in/trail-out run
+     * lengths either side of the part that actually differs (e.g. the " hr"
+     * in "2 hr" → "1 hr 5" stays planted, only "2"/"1 hr 5"'s core rolls).
+     */
+    private var columnMode = false
+    private var columnPrefix = 0
+    private var columnSuffix = 0
 
     private var animator: ValueAnimator? = null
 
@@ -113,7 +125,34 @@ class RollingTextView @JvmOverloads constructor(
         outgoingLayout = outgoing
         outgoingWidth = desired.toFloat()
         rollUp = risesInValue(old, new)
-        partial = resolveChangedRun(old, new, outgoing)
+        when {
+            outgoing.lineCount != 1 -> {
+                partial = false
+                columnMode = false
+            }
+            old.length == new.length -> {
+                partial = resolveChangedRun(old, new, outgoing)
+                columnMode = false
+            }
+            else -> {
+                // Digit count changed: roll fixed right-aligned columns (see
+                // drawColumns) rather than sliding the whole string, so a
+                // surviving digit stays in the slot it already occupies
+                // instead of jumping once the shorter value's width lands.
+                // Only the run that actually differs enters that column
+                // roll — a shared prefix/suffix (" hr", etc.) is planted.
+                partial = false
+                columnMode = true
+                val minLen = min(old.length, new.length)
+                var p = 0
+                while (p < minLen && old[p] == new[p]) p++
+                var s = 0
+                val maxSuffix = minLen - p
+                while (s < maxSuffix && old[old.length - 1 - s] == new[new.length - 1 - s]) s++
+                columnPrefix = p
+                columnSuffix = s
+            }
+        }
 
         animator?.cancel()
         animator = ValueAnimator.ofFloat(0f, 1f).apply {
@@ -144,9 +183,6 @@ class RollingTextView @JvmOverloads constructor(
      * would slice through unrelated characters.
      */
     private fun resolveChangedRun(old: String, new: String, outgoing: Layout): Boolean {
-        if (old.length != new.length) return false
-        if (outgoing.lineCount != 1) return false
-
         var start = 0
         while (start < old.length && old[start] == new[start]) start++
         var end = old.length
@@ -176,6 +212,9 @@ class RollingTextView @JvmOverloads constructor(
         }
         progress = 1f
         partial = false
+        columnMode = false
+        columnPrefix = 0
+        columnSuffix = 0
         invalidate()
     }
 
@@ -214,6 +253,11 @@ class RollingTextView @JvmOverloads constructor(
         val incomingY = direction * travel * (1f - progress)
         val outgoingY = -direction * travel * progress
 
+        if (columnMode) {
+            drawColumns(canvas, outgoing, incomingY, outgoingY)
+            return
+        }
+
         // Resolved here rather than at setText time because the layout for the
         // new value only exists once the view has been measured.
         val window = if (partial) changedRunBounds(outgoing) else null
@@ -228,6 +272,81 @@ class RollingTextView @JvmOverloads constructor(
         }
         drawClipped(canvas, windowLeft, windowRight, incomingY, false, outgoing)
         drawClipped(canvas, windowLeft, windowRight, outgoingY, true, outgoing)
+    }
+
+    /**
+     * Rolls a value whose digit count changed as fixed right-aligned columns,
+     * like an odometer: the units column stays in the slot it already
+     * occupies and rolls in place, while a leading column that only one side
+     * has (the "1" leaving "10", or the "1" arriving in "10") rolls out to
+     * nothing or in from nothing in its own slot. Nothing shifts sideways to
+     * a new resting position — that horizontal jump once the shorter value's
+     * width lands is exactly the artifact this replaces.
+     *
+     * Column slots are taken from whichever of the old/new layouts is wider
+     * (it holds the same width for the whole roll, see [onMeasure]), so a
+     * shared column's slot already matches that layout's own glyph position
+     * and only the narrower layout's glyph needs to be nudged sideways to
+     * sit inside it.
+     */
+    private fun drawColumns(canvas: Canvas, outgoing: Layout, incomingY: Float, outgoingY: Float) {
+        val current = layout
+        if (current == null || current.lineCount != 1) {
+            // Can't resolve column geometry yet (or it wrapped) — slide the
+            // whole string instead of guessing at columns.
+            drawClipped(canvas, 0f, width.toFloat(), incomingY, false, outgoing)
+            drawClipped(canvas, 0f, width.toFloat(), outgoingY, true, outgoing)
+            return
+        }
+
+        val oldLen = outgoing.text.length
+        val newLen = current.text.length
+        val prefix = columnPrefix
+        val suffix = columnSuffix
+        if (suffix > oldLen - prefix || suffix > newLen - prefix) {
+            // The layout the roll started with no longer matches (e.g. it
+            // wrapped or the value changed again) — fall back to a slide.
+            drawClipped(canvas, 0f, width.toFloat(), incomingY, false, outgoing)
+            drawClipped(canvas, 0f, width.toFloat(), outgoingY, true, outgoing)
+            return
+        }
+        val coreOldLen = oldLen - prefix - suffix
+        val coreNewLen = newLen - prefix - suffix
+
+        // The common prefix/suffix (e.g. the " hr" that doesn't change) is
+        // planted either side of the rolling core, exactly like the window
+        // path's static regions — it never joins the roll.
+        if (prefix > 0) {
+            val prefixRight = current.getPrimaryHorizontal(prefix) + compoundPaddingLeft
+            drawClipped(canvas, 0f, prefixRight, 0f, false, outgoing)
+        }
+        if (suffix > 0) {
+            val suffixLeft = current.getPrimaryHorizontal(newLen - suffix) + compoundPaddingLeft
+            drawClipped(canvas, suffixLeft, width.toFloat(), 0f, false, outgoing)
+        }
+
+        val refLayout = if (coreOldLen >= coreNewLen) outgoing else current
+        val refLen = max(coreOldLen, coreNewLen)
+
+        for (column in 0 until refLen) {
+            val refIndex = prefix + refLen - 1 - column
+            val slotLeft = floor(refLayout.getPrimaryHorizontal(refIndex)) + compoundPaddingLeft
+            val slotRight = ceil(refLayout.getPrimaryHorizontal(refIndex + 1)) + compoundPaddingLeft
+            if (slotRight <= slotLeft) continue
+
+            val oldCoreIndex = coreOldLen - 1 - column
+            if (oldCoreIndex >= 0) {
+                val oldIndex = prefix + oldCoreIndex
+                val dx = slotLeft - outgoing.getPrimaryHorizontal(oldIndex) - compoundPaddingLeft
+                drawClipped(canvas, slotLeft, slotRight, outgoingY, true, outgoing, dx)
+            }
+            val newCoreIndex = coreNewLen - 1 - column
+            if (newCoreIndex >= 0) {
+                val newIndex = prefix + newCoreIndex
+                val dx = slotLeft - current.getPrimaryHorizontal(newIndex) - compoundPaddingLeft
+                drawClipped(canvas, slotLeft, slotRight, incomingY, false, outgoing, dx)
+            }
+        }
     }
 
     /**
@@ -264,6 +383,7 @@ class RollingTextView @JvmOverloads constructor(
         offsetY: Float,
         isOutgoing: Boolean,
         outgoing: Layout,
+        offsetX: Float = 0f,
     ) {
         if (right <= left) return
         val save = canvas.save()
@@ -272,7 +392,7 @@ class RollingTextView @JvmOverloads constructor(
         } else {
             canvas.clipRect(left, paddingTop.toFloat(), right, (height - paddingBottom).toFloat())
         }
-        canvas.translate(0f, offsetY)
+        canvas.translate(offsetX, offsetY)
         if (isOutgoing) {
             canvas.translate(compoundPaddingLeft.toFloat(), extendedPaddingTop.toFloat())
             paint.color = currentTextColor
