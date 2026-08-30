@@ -28,6 +28,7 @@ import com.nexttrain.data.Departure
 import com.nexttrain.data.DeparturesEntry
 import com.nexttrain.data.DeparturesRepository
 import com.nexttrain.data.OdPair
+import com.nexttrain.data.withCurrentCountdown
 import com.nexttrain.prefs.WidgetPrefs
 import com.nexttrain.ui.Formatting
 import kotlin.math.roundToInt
@@ -214,6 +215,16 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
      * lifecycle around this (goAsync()/finish() for refreshTick; WidgetActionReceiver's
      * own goAsync()/finish() for handleControlAction), so this itself must not call
      * either.
+     *
+     * The alarm fires every ~60s regardless of active/idle state (see
+     * AlarmScheduler's REPAINT_INTERVAL_MS), but a real network fetch is only
+     * allowed once ACTIVE_INTERVAL_MS/IDLE_INTERVAL_MS has actually elapsed
+     * since WidgetPrefs.getLastFetchAttempt for whichever pair(s) this tick
+     * cares about (or [forceRefresh] is set). Every other tick repaints from
+     * [repaintSnapshot] instead — cheap (no network I/O) compared to a fetch,
+     * and each departure's countdown is recomputed against the current clock
+     * so the widget/notification keep ticking down between fetches instead of
+     * freezing until the next real one.
      */
     private suspend fun performRefresh(
         context: Context,
@@ -226,8 +237,13 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
         val widgetPair = currentWidgetPair(prefs, activePairNow)
         val backgroundPairs = listOfNotNull(widgetPair, activePairNow).distinctBy { it.id }
 
-        val entries = if (alreadyFetched) {
-            DeparturesRepository.entries.value
+        val fetchIntervalMs = if (activePairNow != null) ACTIVE_INTERVAL_MS else IDLE_INTERVAL_MS
+        val fetchDue = forceRefresh || backgroundPairs.any { pair ->
+            System.currentTimeMillis() - prefs.getLastFetchAttempt(pair.id) >= fetchIntervalMs
+        }
+
+        val entries = if (alreadyFetched || !fetchDue) {
+            repaintSnapshot(prefs, backgroundPairs)
         } else {
             DeparturesRepository.refreshAll(
                 context = context,
@@ -245,6 +261,27 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
             appWidgetIds.forEach { updateWidget(context, manager, it, activePairNow, entries) }
         }
     }
+
+    /**
+     * Builds an entries snapshot for a tick that isn't allowed to fetch:
+     * prefers this process's in-memory result for a pair if it has fetched
+     * since launch, otherwise falls back to the on-disk cache (the same
+     * source [updateWidget]'s error path already trusts) — either way each
+     * departure's countdown is recomputed against the current clock (see
+     * [withCurrentCountdown]) rather than frozen at whatever it read at fetch
+     * time, so a repaint-only tick still ticks the numbers down correctly.
+     */
+    private fun repaintSnapshot(prefs: WidgetPrefs, pairs: List<OdPair>): Map<String, DeparturesEntry> =
+        pairs.associate { pair ->
+            val live = DeparturesRepository.entries.value[pair.id]
+            val departures = (live?.departures ?: prefs.getCachedDepartures(pair.id))
+                .map { it.withCurrentCountdown() }
+            pair.id to DeparturesEntry(
+                departures = departures,
+                unreachable = live?.unreachable ?: false,
+                lastUpdatedMs = live?.lastUpdatedMs ?: prefs.getLastSuccessfulFetch(pair.id),
+            )
+        }
 
     /**
      * The single OD pair the widget is currently showing (or about to show),
@@ -370,9 +407,10 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
 
         val activePair = resolveSelectedPair(prefs, activePairNow) ?: return
 
-        // entries is populated by DeparturesRepository.refreshAll() for every
-        // configured pair before refreshTick calls updateWidget, so the fetch
-        // for this pair has already happened this tick — paint straight from it.
+        // entries is populated by performRefresh before updateWidget is called —
+        // either freshly fetched this tick, or (see repaintSnapshot) a
+        // countdown-refreshed snapshot of the last cached fetch — paint straight
+        // from it either way.
         val entry = entries[activePair.id]
         // .upcoming drops anything more than a few seconds past due (see
         // Departure.hasDeparted) — without it a departed train could sit
@@ -397,6 +435,7 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
                 pair = activePair,
                 departures = upcoming,
                 offline = entry.unreachable,
+                lastUpdatedMs = entry.lastUpdatedMs,
             )
         }
     }
@@ -455,7 +494,8 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
         widgetId: Int,
         pair: OdPair,
         departures: List<Departure>,
-        offline: Boolean = false
+        offline: Boolean = false,
+        lastUpdatedMs: Long = -1L,
     ) {
         // Cache read/write for this pair is already handled by DeparturesRepository
         // (see refreshTick) — this just paints what it fetched.
@@ -465,9 +505,15 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
         views.setViewVisibility(R.id.layout_idle, View.GONE)
         views.setViewVisibility(R.id.layout_error, View.GONE)
         views.setTextViewText(R.id.tv_route_label, "${pair.originName} ➝ ${pair.destinationName}")
+        // Always the real last-fetch time, not "now" — on a tick that actually
+        // fetched this equals now anyway (see DeparturesRepository.fetchOne), but
+        // on a repaint-only tick (see performRefresh/repaintSnapshot) it correctly
+        // keeps pointing at whenever data was actually last pulled from the
+        // server, rather than falsely claiming "just refreshed" every ~60s.
+        val updatedInstant = if (lastUpdatedMs > 0) Instant.ofEpochMilli(lastUpdatedMs) else Instant.now()
         val nowUnformatted = DateTimeFormatter.ofPattern("HH:mm")
             .withZone(ZoneId.systemDefault())
-            .format(Instant.now())
+            .format(updatedInstant)
         val now = Formatting.formatTime(use24Hour, nowUnformatted)
         // When offline, these are stale times from the last successful fetch,
         // not "just updated now" — say so rather than implying they're live.

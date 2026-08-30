@@ -11,9 +11,23 @@ import com.nexttrain.prefs.WidgetPrefs
 
 private const val TAG = "AlarmScheduler"
 const val ACTION_ALARM_UPDATE = "com.nexttrain.ACTION_ALARM_UPDATE"
-private const val ACTIVE_INTERVAL_MS = 60_000L // 1 minute, while a notification window is active
-private const val IDLE_INTERVAL_MS = 5 * 60_000L // 5 minutes otherwise — the widget's own
-    // updatePeriodMillis backstop still repaints every 30 min regardless.
+
+// Fetch-gating thresholds, not the alarm's own cadence (see REPAINT_INTERVAL_MS
+// below) — TrainWidgetProvider.performRefresh compares WidgetPrefs.getLastFetchAttempt
+// against one of these (depending on whether a notification window is active) to
+// decide whether a given tick is allowed to hit the network, or must repaint from
+// the existing cache instead. internal so that file can reference them directly.
+internal const val ACTIVE_INTERVAL_MS = 60_000L // 1 minute, while a notification window is active
+internal const val IDLE_INTERVAL_MS = 5 * 60_000L // 5 minutes otherwise
+
+// The alarm itself always fires on this cadence — every tick repaints the
+// widget/notification countdowns and "last updated" label from whatever data
+// is already cached (see Departure.withCurrentCountdown), even on ticks that
+// don't fetch. Repainting is cheap (no radio wake, no network I/O) compared to
+// an actual fetch, so keeping this fast doesn't cost meaningfully more battery
+// than the fetch cadence alone — only ACTIVE_INTERVAL_MS/IDLE_INTERVAL_MS above
+// gate how often the expensive part (the network round-trip) actually happens.
+private const val REPAINT_INTERVAL_MS = ACTIVE_INTERVAL_MS
 // Spreads server load: without jitter, devices that happen to boot/install
 // around the same moment (e.g. after a mass OTA update) would otherwise
 // stay in lockstep on the same cadence indefinitely, since each alarm
@@ -21,15 +35,17 @@ private const val IDLE_INTERVAL_MS = 5 * 60_000L // 5 minutes otherwise — the 
 private const val JITTER_MS = 5_000L
 
 /**
- * Schedules alarms whenever OD pairs exist, at a cadence that adapts to
- * whether a notification window is currently active: 60s while at least one
- * OD pair is inside its active window (matching WidgetPrefs.activeOdPairs()),
- * ~5 min otherwise. Uses setAndAllowWhileIdle (not the exact variant, so no
- * "Alarms & reminders" special access is needed) so updates are guaranteed to
- * eventually fire in Doze mode — but Doze still throttles how often a "while
- * idle" alarm may actually be delivered (down to roughly every ~9+ minutes
- * once the screen's been off a while), so this on-schedule cadence only holds
- * while the app is exempted from battery optimization. See
+ * Schedules alarms whenever OD pairs exist, always on a fixed ~60s repaint
+ * cadence (see REPAINT_INTERVAL_MS) — every tick repaints from cache, and
+ * TrainWidgetProvider.performRefresh separately decides per-tick whether to
+ * also fetch, based on WidgetPrefs.getLastFetchAttempt and whichever of
+ * ACTIVE_INTERVAL_MS/IDLE_INTERVAL_MS currently applies. Uses
+ * setAndAllowWhileIdle (not the exact variant, so no "Alarms & reminders"
+ * special access is needed) so updates are guaranteed to eventually fire in
+ * Doze mode — but Doze still throttles how often a "while idle" alarm may
+ * actually be delivered (down to roughly every ~9+ minutes once the screen's
+ * been off a while), so this on-schedule cadence only holds while the app is
+ * exempted from battery optimization. See
  * ConfigActivity.maybeShowBatteryOptimizationPrompt, which asks the user for
  * that exemption.
  *
@@ -49,17 +65,15 @@ object AlarmScheduler {
 
     fun scheduleIfNeeded(context: Context) {
         val prefs = WidgetPrefs(context)
-        val pairs = prefs.getOdPairs()
-        if (pairs.isEmpty()) {
+        if (prefs.getOdPairs().isEmpty()) {
             Log.d(TAG, "No OD pairs configured — skipping alarm")
             return
         }
 
-        val intervalMs = if (prefs.activeOdPairs().isNotEmpty()) ACTIVE_INTERVAL_MS else IDLE_INTERVAL_MS
-        schedule(context, intervalMs)
+        schedule(context, REPAINT_INTERVAL_MS)
     }
 
-    fun schedule(context: Context, intervalMs: Long = ACTIVE_INTERVAL_MS) {
+    fun schedule(context: Context, intervalMs: Long = REPAINT_INTERVAL_MS) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pi = pendingIntent(context)
         val jitter = (0 until JITTER_MS).random() - JITTER_MS / 2

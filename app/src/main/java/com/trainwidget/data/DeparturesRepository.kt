@@ -119,6 +119,10 @@ object DeparturesRepository {
         reachabilityTimeoutMs: Long,
         forceRefresh: Boolean,
     ): DeparturesEntry {
+        // Recorded regardless of outcome, so a repaint-only tick can tell this
+        // pair was attempted recently even if the request ultimately failed —
+        // see WidgetPrefs.getLastFetchAttempt.
+        prefs.saveLastFetchAttempt(pair.id, System.currentTimeMillis())
         val result = client.fetchDepartures(
             serverUrl = prefs.serverUrl,
             region = pair.region,
