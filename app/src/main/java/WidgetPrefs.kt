@@ -26,6 +26,7 @@ private const val KEY_LAST_DELAY_HISTORY_TIMESTAMP = "last_delay_history_timesta
 private const val KEY_STATION_CATALOG = "station_catalog"
 private const val KEY_CACHED_DEPARTURES_PREFIX = "cached_departures_"
 private const val KEY_LAST_SUCCESSFUL_FETCH_PREFIX = "last_successful_fetch_"
+private const val KEY_LAST_FETCH_ATTEMPT_PREFIX = "last_fetch_attempt_"
 private const val KEY_USE_24_HOUR_FORMAT = "use_24_hour_format"
 private const val KEY_SELECTED_REGION = "selected_region"
 private const val KEY_SERVED_REGIONS = "served_regions"
@@ -400,6 +401,20 @@ class WidgetPrefs(context: Context) {
 
     fun saveLastSuccessfulFetch(pairId: String, timestampMs: Long) {
         prefs.edit().putLong(KEY_LAST_SUCCESSFUL_FETCH_PREFIX + pairId, timestampMs).apply()
+    }
+
+    /**
+     * Wall-clock time [pairId] was last actually requested from the server —
+     * unlike [getLastSuccessfulFetch], this advances on a failed attempt too,
+     * so a repaint-only widget tick (see AlarmScheduler) can tell "we tried
+     * recently, don't hammer the network again yet" apart from "nobody has
+     * asked in a while, this tick should fetch."
+     */
+    fun getLastFetchAttempt(pairId: String): Long =
+        prefs.getLong(KEY_LAST_FETCH_ATTEMPT_PREFIX + pairId, -1L)
+
+    fun saveLastFetchAttempt(pairId: String, timestampMs: Long) {
+        prefs.edit().putLong(KEY_LAST_FETCH_ATTEMPT_PREFIX + pairId, timestampMs).apply()
     }
 
     // ── Gson-serialisable DTO (avoids java.time serialization issues) ─────
