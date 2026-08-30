@@ -34,7 +34,10 @@ import com.nexttrain.data.OdPair
 import com.nexttrain.data.Region
 import com.nexttrain.prefs.WidgetPrefs
 import com.nexttrain.ui.Formatting
+import com.nexttrain.widget.ACTIVE_INTERVAL_MS
 import com.nexttrain.widget.AlarmScheduler
+import com.nexttrain.widget.NEAR_DEPARTURE_INTERVAL_MS
+import com.nexttrain.widget.isNearDeparture
 import com.nexttrain.widget.sendWidgetRefreshBroadcast
 import com.nexttrain.widget.shouldPromptForBatteryExemption
 import kotlinx.coroutines.*
@@ -507,12 +510,20 @@ class ConfigActivity : AppCompatActivity() {
      * background requests for routes nothing is displaying. This dashboard
      * shows every route at once, so while it's actually open it fetches all
      * of them itself, every 60s — the cost is bounded to screen-on time.
+     * Shrinks to [NEAR_DEPARTURE_INTERVAL_MS] whenever any configured route
+     * has a departure within [com.nexttrain.widget.NEAR_DEPARTURE_WINDOW_MIN],
+     * matching the background alarm's near-departure speedup.
      */
     private fun startPeriodicFullRefresh() {
         if (periodicRefreshJob?.isActive == true) return
         periodicRefreshJob = scope.launch {
             while (isActive) {
-                delay(60_000L)
+                val intervalMs = if (prefs.getOdPairs().any { isNearDeparture(prefs, it) }) {
+                    NEAR_DEPARTURE_INTERVAL_MS
+                } else {
+                    ACTIVE_INTERVAL_MS
+                }
+                delay(intervalMs)
                 if (!isEditMode) {
                     val pairs = prefs.getOdPairs()
                     if (pairs.isNotEmpty()) refreshDashboard(pairs, forceRefresh = true)

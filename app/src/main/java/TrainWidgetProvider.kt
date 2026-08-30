@@ -216,9 +216,12 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
      * own goAsync()/finish() for handleControlAction), so this itself must not call
      * either.
      *
-     * The alarm fires every ~60s regardless of active/idle state (see
-     * AlarmScheduler's REPAINT_INTERVAL_MS), but a real network fetch is only
-     * allowed once ACTIVE_INTERVAL_MS/IDLE_INTERVAL_MS has actually elapsed
+     * The alarm normally fires every ~60s regardless of active/idle state
+     * (see AlarmScheduler's REPAINT_INTERVAL_MS), shrinking to
+     * NEAR_DEPARTURE_INTERVAL_MS once the active pair's soonest known
+     * departure is within NEAR_DEPARTURE_WINDOW_MIN. A real network fetch is
+     * only allowed once the matching interval (ACTIVE_INTERVAL_MS,
+     * IDLE_INTERVAL_MS, or NEAR_DEPARTURE_INTERVAL_MS) has actually elapsed
      * since WidgetPrefs.getLastFetchAttempt for whichever pair(s) this tick
      * cares about (or [forceRefresh] is set). Every other tick repaints from
      * [repaintSnapshot] instead — cheap (no network I/O) compared to a fetch,
@@ -237,8 +240,12 @@ abstract class BaseTrainWidgetProvider(private val variant: WidgetVariant) : App
         val widgetPair = currentWidgetPair(prefs, activePairNow)
         val backgroundPairs = listOfNotNull(widgetPair, activePairNow).distinctBy { it.id }
 
-        val fetchIntervalMs = if (activePairNow != null) ACTIVE_INTERVAL_MS else IDLE_INTERVAL_MS
         val fetchDue = forceRefresh || backgroundPairs.any { pair ->
+            val fetchIntervalMs = when {
+                activePairNow == null -> IDLE_INTERVAL_MS
+                pair.id == activePairNow.id && isNearDeparture(prefs, pair) -> NEAR_DEPARTURE_INTERVAL_MS
+                else -> ACTIVE_INTERVAL_MS
+            }
             System.currentTimeMillis() - prefs.getLastFetchAttempt(pair.id) >= fetchIntervalMs
         }
 

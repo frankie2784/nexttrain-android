@@ -20,7 +20,10 @@ import com.nexttrain.data.dropDeparted
 import com.nexttrain.prefs.WidgetPrefs
 import com.nexttrain.ui.Formatting
 import com.nexttrain.ui.RollingTextView
+import com.nexttrain.widget.ACTIVE_INTERVAL_MS
 import com.nexttrain.widget.AlarmScheduler
+import com.nexttrain.widget.NEAR_DEPARTURE_INTERVAL_MS
+import com.nexttrain.widget.isNearDeparture
 import com.nexttrain.widget.sendWidgetRefreshBroadcast
 import kotlinx.coroutines.*
 
@@ -154,13 +157,22 @@ class RouteDeparturesActivity : AppCompatActivity() {
      * The widget's background tick only fetches the route it's currently
      * showing, which may not be this one. This screen needs its own route
      * kept fresh regardless, so while it's open it fetches every 60s itself
-     * — the cost is bounded to screen-on time, same as the dashboard.
+     * — the cost is bounded to screen-on time, same as the dashboard. Shrinks
+     * to [NEAR_DEPARTURE_INTERVAL_MS] once this route's own departure is
+     * within [com.nexttrain.widget.NEAR_DEPARTURE_WINDOW_MIN], matching the
+     * background alarm's near-departure speedup.
      */
     private fun startPeriodicFullRefresh() {
         if (periodicRefreshJob?.isActive == true) return
         periodicRefreshJob = scope.launch {
             while (isActive) {
-                delay(60_000L)
+                val selected = pair
+                val intervalMs = if (selected != null && isNearDeparture(prefs, selected)) {
+                    NEAR_DEPARTURE_INTERVAL_MS
+                } else {
+                    ACTIVE_INTERVAL_MS
+                }
+                delay(intervalMs)
                 refreshRoute()
             }
         }

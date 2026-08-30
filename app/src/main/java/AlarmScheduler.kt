@@ -7,6 +7,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
+import com.nexttrain.data.DeparturesRepository
+import com.nexttrain.data.OdPair
+import com.nexttrain.data.dropDeparted
+import com.nexttrain.data.withCurrentCountdown
 import com.nexttrain.prefs.WidgetPrefs
 
 private const val TAG = "AlarmScheduler"
@@ -19,6 +23,13 @@ const val ACTION_ALARM_UPDATE = "com.nexttrain.ACTION_ALARM_UPDATE"
 // the existing cache instead. internal so that file can reference them directly.
 internal const val ACTIVE_INTERVAL_MS = 60_000L // 1 minute, while a notification window is active
 internal const val IDLE_INTERVAL_MS = 5 * 60_000L // 5 minutes otherwise
+// Once the active pair's soonest known departure is within this many minutes,
+// both the alarm cadence and the fetch-gating interval shrink to
+// NEAR_DEPARTURE_INTERVAL_MS — the last stretch before a train leaves is when
+// a stale countdown or missed platform change matters most, so it's worth the
+// extra battery cost right up close even though it isn't worth it further out.
+internal const val NEAR_DEPARTURE_WINDOW_MIN = 3L
+internal const val NEAR_DEPARTURE_INTERVAL_MS = 30_000L
 
 // The alarm itself always fires on this cadence — every tick repaints the
 // widget/notification countdowns and "last updated" label from whatever data
@@ -35,8 +46,10 @@ private const val REPAINT_INTERVAL_MS = ACTIVE_INTERVAL_MS
 private const val JITTER_MS = 5_000L
 
 /**
- * Schedules alarms whenever OD pairs exist, always on a fixed ~60s repaint
- * cadence (see REPAINT_INTERVAL_MS) — every tick repaints from cache, and
+ * Schedules alarms whenever OD pairs exist, normally on a fixed ~60s repaint
+ * cadence (see REPAINT_INTERVAL_MS), shrinking to NEAR_DEPARTURE_INTERVAL_MS
+ * once the active pair's soonest known departure is within
+ * NEAR_DEPARTURE_WINDOW_MIN — every tick repaints from cache, and
  * TrainWidgetProvider.performRefresh separately decides per-tick whether to
  * also fetch, based on WidgetPrefs.getLastFetchAttempt and whichever of
  * ACTIVE_INTERVAL_MS/IDLE_INTERVAL_MS currently applies. Uses
@@ -61,6 +74,31 @@ internal fun shouldPromptForBatteryExemption(
     dismissed: Boolean,
 ): Boolean = hasNotificationEnabledPair && !isIgnoringBatteryOptimizations && !dismissed
 
+/**
+ * Soonest known minutes-until-departure for [pair], from whatever data is
+ * already cached — in-memory if this process has fetched since launch,
+ * otherwise the on-disk snapshot (see WidgetPrefs.getCachedDepartures) —
+ * without triggering a fetch of its own. Shared by the alarm-cadence check
+ * here and TrainWidgetProvider's fetch-gating so both agree on when a
+ * departure counts as "near".
+ *
+ * Runs both sources through [dropDeparted] (matching [DeparturesEntry.upcoming]),
+ * not just the in-memory one — deliberately, so a departure still reading
+ * "Now" in the UI (shown for any minutesUntilDeparture <= 0 right up until
+ * dropDeparted's ~75s grace expires) is never treated as "not near" just
+ * because integer-minute truncation already ticked it to -1.
+ */
+internal fun soonestKnownMinutesUntilDeparture(prefs: WidgetPrefs, pair: OdPair): Long? {
+    val live = DeparturesRepository.entries.value[pair.id]?.upcoming
+    val departures = live ?: prefs.getCachedDepartures(pair.id).map { it.withCurrentCountdown() }.dropDeparted()
+    return departures.minOfOrNull { it.minutesUntilDeparture }
+}
+
+internal fun isNearDeparture(prefs: WidgetPrefs, pair: OdPair): Boolean {
+    val minutesUntil = soonestKnownMinutesUntilDeparture(prefs, pair) ?: return false
+    return minutesUntil <= NEAR_DEPARTURE_WINDOW_MIN
+}
+
 object AlarmScheduler {
 
     fun scheduleIfNeeded(context: Context) {
@@ -70,7 +108,13 @@ object AlarmScheduler {
             return
         }
 
-        schedule(context, REPAINT_INTERVAL_MS)
+        val activePair = prefs.activeOdPairs().firstOrNull()
+        val intervalMs = if (activePair != null && isNearDeparture(prefs, activePair)) {
+            NEAR_DEPARTURE_INTERVAL_MS
+        } else {
+            REPAINT_INTERVAL_MS
+        }
+        schedule(context, intervalMs)
     }
 
     fun schedule(context: Context, intervalMs: Long = REPAINT_INTERVAL_MS) {
