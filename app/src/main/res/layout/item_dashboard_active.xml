@@ -186,6 +186,7 @@
             android:text="then 23 min 08:21  ·  38 min 08:36"
             android:textColor="@color/nt_sub"
             android:fontFeatureSettings="tnum"
+            android:textSize="14sp"
             style="@style/NT.Text.Caption" />
 
     </LinearLayout>
