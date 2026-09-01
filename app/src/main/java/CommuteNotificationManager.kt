@@ -103,6 +103,9 @@ object CommuteNotificationManager {
         }
 
         val style = NotificationCompat.BigTextStyle().bigText(bigText)
+        if (offline) {
+            style.setSummaryText("Offline")
+        }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
